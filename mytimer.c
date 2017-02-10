@@ -12,21 +12,16 @@
  
 #define MAX_TIMER_COUNT 1000
  
-struct timer_node
-{
-    int                 fd;
-    time_handler        callback;
-    void *              user_data;
-    unsigned int        interval;
-    t_timer             type;
-    struct timer_node * next;
-};
- 
 static void * _timer_thread(void * data);
 static pthread_t g_thread_id;
 static struct timer_node *g_head = NULL;
 static int IoTtimers_running = 0;
  
+int active_IoTtimer(void)
+{
+    return (IoTtimers_running>0);
+}
+
 int start_IoTtimers()
 {
     if (IoTtimers_running)
@@ -40,13 +35,14 @@ int start_IoTtimers()
  
 void stop_IoTtimers()
 {
-    while(g_head) 
-      delete_IoTtimer((size_t)g_head);
+    IoTtimers_running--;
+
+    if (!IoTtimers_running) {
+        while(g_head) 
+          delete_IoTtimer((size_t)g_head);
  
-    if (IoTtimers_running) {
         pthread_cancel(g_thread_id);
         pthread_join(g_thread_id, NULL);
-        IoTtimers_running--;
         }
 }
  
@@ -119,6 +115,15 @@ void delete_IoTtimer(size_t timer_id)
     }
  
     if(node) free(node);
+}
+ 
+void change_IoTtimer(size_t timer_id, int newperiod)
+{
+    struct timer_node * node = (struct timer_node *)timer_id;
+ 
+    if (node == NULL) return;
+ 
+    node->interval  = newperiod;
 }
  
 struct timer_node * _get_timer_from_fd(int fd)

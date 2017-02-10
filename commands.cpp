@@ -15,7 +15,6 @@ extern "C" {
 #endif
 
 #include <hwlib/hwlib.h>
-#include "mytimer.h"
 
 #ifdef __cplusplus
 }
@@ -26,6 +25,8 @@ extern "C" {
 #include "microrl.h"
 #include "hts221.h"
 #include "binio.h"
+#include "mytimer.h"
+#include "http.h"
 
 #include "mal.hpp"
 
@@ -56,19 +57,10 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 microrl_t rl;
 microrl_t *prl = &rl;
 
-GPIOPIN gpio[] = {
-//  nbr, rate, val, hndl, timr*
-    2,    0,   0,    0, NULL,
-    7,    0,   0,    0, NULL,
-    3,    0,   0,    0, NULL,
-    95,   0,   0,    0, NULL,
-    };
-#define _MAX_GPIO	(sizeof(gpio)/sizeof(GPIOPIN))
-
 const cmd_entry mon_command_table[] =
   {
   max_moncommands, ";",           "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
-  0,               ";",           "GPIO's are: GPIO_95, GPIO_02, GPIO_07, GPIO_03 currently supported.\n",  NULL,
+  0,               ";",           "GPIO's are: GPIO_PIN_95, GPIO_PIN_2, GPIO_PIN_7, GPIO_PIN_3 currently supported.\n",  NULL,
   0, "?",           "?             Displays this help screen",                                              command_help,
   0, "HELP",        "help          Displays this help screen",                                              command_help,
   0, "GPIO",        "gpion # # #   Drives GPIO pin high/low as desired (GPIO GPIOx 0/1)",                    command_gpio,
@@ -87,11 +79,12 @@ const cmd_entry fac_command_table[] =
   {
   max_iotcommands, ";",           "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
   0,               ";",           "\n",                                                                          NULL,
-  0, "?",           "?             Displays this help screen",           command_help,
-  0, "HELP",        "help          Displays this help screen",           command_help,
-  0, "WNCINFO",     "wncinfo       displays the WNC module information", command_WNCInfo, 
-  0, "MON",         "mon           Enter interactive monitor mode",      command_iotmon,
-  0, "EXIT",        "exit          End Program execution",               command_exit,
+  0, "?",           "?             Displays this help screen",                 command_help,
+  0, "HELP",        "help          Displays this help screen",                 command_help,
+  0, "WNCINFO",     "wncinfo       Displays the WNC module information",       command_WNCInfo, 
+  0, "TX2M2X",      "tx2m2x ## X   Tx data from X at ## sec intervals to M2X", command_tx2m2x, 
+  0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
+  0, "EXIT",        "exit          End Program execution",                     command_exit,
   };
 #define _MAX_IOTCOMMANDS	(sizeof(fac_command_table)/sizeof(cmd_entry))
 
@@ -110,6 +103,7 @@ int command_http_put(int argc, const char * const * argv);
 int command_http_get(int argc, const char * const * argv);
 int command_iotmon(int argc, const char * const * argv );
 int command_factest(int argc, const char * const * argv );
+int command_tx2m2x(int argc, const char * const * argv );
 int command_WNCInfo(int argc, const char * const * argv );
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
@@ -333,14 +327,15 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
         case 7:  //GPIO_07
         case 95: //GPIO_95
             do {
-                done = (gpio[k].nbr == indx);
+                done = (gpios[k].nbr == indx);
                 k++;
                 }
-            while( k < _MAX_GPIO && !done);
+            while( k < _max_gpiopins && !done);
+            k--; //k will always be 1 more than it should be, but done will be TRUE if found
 
             if (done) {
-                printf("Setting GPIO_PIN_%d to %s\n",k,(state)?"1":"0");
-                gpio_write( gpio[k].hndl, (state)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW);
+                printf("Setting GPIO_PIN_%d to %s\n",gpios[k].nbr,(state)?"1":"0");
+                gpio_write( gpios[k].hndl, (state)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW);
                 break;
                 }
      default:
@@ -349,18 +344,22 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
      }
 }
 
-void blink_handler(size_t timer_id, void * user_data)
-{
-
-//    printf("toggleing GPIO%d to %s\n",indx,(state)?"1":"0");
-//    gpio_write( gpio[indx-1], (state)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW);
-}
-
 int command_blink(int argc __attribute__((unused)), const char * const * argv )
 {
-    int indx = atoi(&argv[1][5]);
+    int indx = atoi(&argv[1][9]);
     int rate = atoi(argv[2]);
     int k=0, done, state;
+    
+ //   do_gpio_blink( 0, 8);
+//    do_gpio_blink( 1, 4);
+//    do_gpio_blink( 2, 2);
+//    sleep(10);
+//    do_gpio_blink( 0, 0 );
+//    sleep(10);
+//    do_gpio_blink( 1, 0 );
+//    sleep(10);
+//    do_gpio_blink( 2, 0 );
+//    return 0;
 
     switch(indx) {
         case 2:  //GPIO_02
@@ -368,34 +367,26 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
         case 7:  //GPIO_07
         case 95: //GPIO_95
             do {
-                done = (gpio[k].nbr == indx);
+                done = (gpios[k].nbr == indx);
                 k++;
                 }
-            while( k < _MAX_GPIO && !done);
+            while( k < _max_gpiopins && !done);
+            k--; //k will always be 1 more than it should be, but done will be TRUE if found
+//printf("blinking gpio_pin_%d\n",gpios[k].nbr);
                 
-            if (done) {
-                if (gpio[k].rate) {  //start blinking or change rate
-                    state = gpio[k].val;
-                    printf("Start blinking GPIO_PIN_%d at %d times/sec begining with %s\n",k, rate, (state)?"1":"0");
-                    start_IoTtimers();
-                    gpio_write( gpio[k].hndl, (state)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW);
-//                    create_IoTtimer(unsigned int interval, time_handler handler, t_timer type, void * user_data);
-                    }
-                else {       //stop this gpio from blinking
-//                    delete_IoTtimer(blink_tmr);
-//                    stop_IoTtimers();
-                      }
-            break;
-            }
+            if (done) {  //ok found a GPIO_PIN_x to toggle
+                do_gpio_blink( k, rate );
+                break;
+                }
 
-     default:
-        printf("ERROR: unknown binary i/o GPIO_PIN_%s\n",argv[1][5]);
+        default:
+            printf("ERROR: unknown binary i/o GPIO_PIN_%s\n",argv[1][9]);
             break;
      }
 }
 
-#define CTOF(x)  ((x)*(float)1.8+32) 
 
+#define CTOF(x)  ((x)*(float)1.8+32) 
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
     int repeats = atoi(argv[1])+1;
@@ -430,6 +421,17 @@ int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv 
 }
 
 
+int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
+{
+    char*  sensor    = (char*)argv[1]; 
+    int    i, interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
+
+    for (i=0; i<_max_m2xfunctions; i++) {
+        if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
+            (m2xfunctions[i]).func(interval);
+        }
+}
+
 int command_i2cpoke(int, char const* const*)
 {
     printf("called i2cpoke\n");
@@ -441,6 +443,16 @@ int command_factest(int, char const* const*)
     microrl_setprompt (prl, FACTORY_PROMPT, strlen(FACTORY_PROMPT)) ;
     printf("called factest\n");
 }
+
+int command_headless(int argc, const char * const * argv )
+{
+    void app_exit();
+
+    do_gpio_blink( 1, 1 );
+    sleep(60);
+    app_exit();
+}
+
 
 int command_gps(int argc, const char * const * argv )
 {

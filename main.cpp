@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
         }
 
     if( headless ){
-        command_iotmon(argc, argv);
+        command_headless(argc, argv );
         exit(0);
         }
     

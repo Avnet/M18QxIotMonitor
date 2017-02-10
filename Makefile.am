@@ -19,11 +19,12 @@ jim_demo_CFLAGS = -Wall \
         -lcurl \
         -lhw 
 
-jim_demo_LDFLAGS = -ljson-c -lcurl -lpthread -lhw 
+AM_LDFLAGS = -ljson-c -lcurl -lpthread -lhw  
 
 iot_monitor_SOURCES = main.cpp microrl.cpp MyBuffer.cpp \
                       commands.cpp mal.cpp maljson.cpp \
-                      binio.c jsmn.c  hts221.c mytimer.c
+                      binio.c jsmn.c  hts221.c mytimer.c \
+                      http.c
 
 bin_PROGRAMS = iot_monitor
 
