@@ -63,14 +63,15 @@ const cmd_entry mon_command_table[] =
   0,               ";",           "GPIO's are: GPIO_PIN_95, GPIO_PIN_2, GPIO_PIN_7, GPIO_PIN_3 currently supported.\n",  NULL,
   0, "?",           "?             Displays this help screen",                                              command_help,
   0, "HELP",        "help          Displays this help screen",                                              command_help,
-  0, "GPIO",        "gpion # # #   Drives GPIO pin high/low as desired (GPIO GPIOx 0/1)",                    command_gpio,
+  0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
+  0, "GPIO",        "gpion # # #   Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
   0, "BLINK",       "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",command_blink, 
   0, "HTS221",      "HTS221        Display information about the HTS221 sensor.",                           command_hts221,
   0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
   0, "ADC",         "ADC #         Read ADC #                                                          ",   command_adc,
   0, "I2CPEEK",     "I2CPEEK <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
   0, "I2CPOKE",     "I2CPOKE <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
-  0, "FACT",        "fact          Performs a connect test with the WNC Module & SIM card",                 command_factest,
+  0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_factest,
   0, "EXIT",        "exit          End Program execution",                                                  command_exit,
   };
 #define _MAX_MONCOMMANDS	(sizeof(mon_command_table)/sizeof(cmd_entry))
@@ -82,6 +83,7 @@ const cmd_entry fac_command_table[] =
   0, "?",           "?             Displays this help screen",                 command_help,
   0, "HELP",        "help          Displays this help screen",                 command_help,
   0, "WNCINFO",     "wncinfo       Displays the WNC module information",       command_WNCInfo, 
+  0, "WWANSTAT",    "wwanstat      Displays the WWAN status information",      command_WWANStatus,
   0, "TX2M2X",      "tx2m2x ## X   Tx data from X at ## sec intervals to M2X", command_tx2m2x, 
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
   0, "EXIT",        "exit          End Program execution",                     command_exit,
@@ -92,7 +94,7 @@ int command_help(int argc, const char * const * argv );
 int command_gpio(int argc, const char * const * argv );
 int command_blink(int argc, const char * const * argv );
 int command_sndat(int argc, const char * const * argv );
-int command_baud(int argc, const char * const * argv );
+int command_facttest(int argc, const char * const * argv );
 int command_hts221(int argc __attribute__((unused)), const char * const * argv );
 int command_i2cpeek(int argc, const char * const * argv );
 int command_i2cpoke(int argc, const char * const * argv );
@@ -105,6 +107,7 @@ int command_iotmon(int argc, const char * const * argv );
 int command_factest(int argc, const char * const * argv );
 int command_tx2m2x(int argc, const char * const * argv );
 int command_WNCInfo(int argc, const char * const * argv );
+int command_WWANStatus(int, char const* const*);
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
 int command_exit(int, char const* const*);
@@ -281,6 +284,34 @@ int command_exit(int, char const* const*)
 }
 
 //for(k=0; k<3; k++) printf("#%02d: {%s, %s}\n", k,om[k].key,om[k].value);
+
+int command_WWANStatus(int, char const* const*)
+{
+    json_keyval om[20];
+    int k;
+    const char *radio_mode[] = {"No service", "3G", "4G" };
+    const char *radio_state[]= { 
+        "No Registered", "Registered with network", 
+        "searching", "registration denied", "unknown" };
+    const char *xs_state[]   = {"Unknown","Attached","Detached"};
+    const char *roaming[]    = {"Home", "Roaming", "Unknown"};
+
+    printf(" WWAN Status (");
+    start_data_service();
+
+    printf("received %d key/value pairs):\n", get_wwan_status(om, 20));
+    printf("             Radio Mode: %s(%s)\n", radio_mode[atoi(om[3].value)], om[3].value);
+    printf("        Signal strength; %s\n", om[4].value);
+    printf("           Signal Level: %s\n", om[6].value);
+    printf("                  state: %s(%s)\n", radio_state[atoi(om[7].value)], om[7].value);
+    printf(" Circuit-switched state: %s(%s)\n", xs_state[atoi(om[8].value)], om[8].value);
+    printf("  Packet-switched state: %s(%s)\n", xs_state[atoi(om[9].value)], om[9].value);
+    printf("     Registration state: %s(%s)\n", roaming[atoi(om[16].value)], om[16].value);
+
+//    for(k=0; k<20; k++) 
+//        printf("#%02d: {%s, %s}\n", k, om[k].key, om[k].value);
+}
+
 int command_WNCInfo(int, char const* const*)
 {
     json_keyval om[4];
@@ -296,23 +327,23 @@ int command_WNCInfo(int, char const* const*)
     start_data_service();
 
     mySystem.model=getModelID(om, 4);
-    printf("       WNC Model: %s\n",mySystem.model.c_str());
+    printf("              WNC Model: %s\n",mySystem.model.c_str());
     mySystem.firmVer=getFirmwareVersion(om, 4);
-    printf("Firmware Version: %s\n",mySystem.firmVer.c_str());
+    printf("       Firmware Version: %s\n",mySystem.firmVer.c_str());
     mySystem.malwarVer=getMALManVer(om, 4);
-    printf("     MAL Version: %s\n",mySystem.malwarVer.c_str());
+    printf("            MAL Version: %s\n",mySystem.malwarVer.c_str());
     mySystem.opMode = getOperatingMode(om, 4);
-    printf("  Operating Mode: %s\n",om_str[atoi(mySystem.opMode.c_str())]);
+    printf("         Operating Mode: %s\n",om_str[atoi(mySystem.opMode.c_str())]);
     mySystem.ip=get_ipAddr(om, 4);
-    printf("              IP: %s\n",mySystem.ip.c_str());
+    printf("                     IP: %s\n",mySystem.ip.c_str());
     mySystem.iccid=getICCID(om, 4);
-    printf("           ICCID: %s\n",mySystem.iccid.c_str());
+    printf("                  ICCID: %s\n",mySystem.iccid.c_str());
     mySystem.imei=getIMEI(om, 4);
-    printf("            IMEI: %s\n",mySystem.imei.c_str());
+    printf("                   IMEI: %s\n",mySystem.imei.c_str());
     mySystem.imsi=getIMSI(om, 4);
-    printf("            IMSI: %s\n",mySystem.imsi.c_str());
+    printf("                   IMSI: %s\n",mySystem.imsi.c_str());
     mySystem.msisdn=getMSISDN(om, 4);
-    printf("          MSISDN: %s\n",mySystem.msisdn.c_str());
+    printf("                 MSISDN: %s\n",mySystem.msisdn.c_str());
 }
 
 int command_gpio(int argc __attribute__((unused)), const char * const * argv )
@@ -350,17 +381,6 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     int rate = atoi(argv[2]);
     int k=0, done, state;
     
- //   do_gpio_blink( 0, 8);
-//    do_gpio_blink( 1, 4);
-//    do_gpio_blink( 2, 2);
-//    sleep(10);
-//    do_gpio_blink( 0, 0 );
-//    sleep(10);
-//    do_gpio_blink( 1, 0 );
-//    sleep(10);
-//    do_gpio_blink( 2, 0 );
-//    return 0;
-
     switch(indx) {
         case 2:  //GPIO_02
         case 3:  //GPIO_03
@@ -372,7 +392,6 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
                 }
             while( k < _max_gpiopins && !done);
             k--; //k will always be 1 more than it should be, but done will be TRUE if found
-//printf("blinking gpio_pin_%d\n",gpios[k].nbr);
                 
             if (done) {  //ok found a GPIO_PIN_x to toggle
                 do_gpio_blink( k, rate );
@@ -394,8 +413,9 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     float temp  = hts221_getTemp();
 
     do {
+        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
         printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid());
+        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
         sleep(delay);
         }
     while (--repeats);
@@ -465,7 +485,7 @@ int command_gps(int argc, const char * const * argv )
     printf("calling gps stuff\n");
 
     enableGPS();
-sleep(5);
+sleep(2);
     getGPSlocation(om,sizeof(om)/sizeof(char*));
     setGPSmode(4);
     setGPS_NMEAFilter( 0xff );
@@ -476,16 +496,41 @@ sleep(5);
 
 int command_adc(int argc, const char * const * argv )
 {
-    adc_handle_t my_adc;
+    adc_handle_t my_adc=(adc_handle_t)NULL;
     float val;
 
-    printf("called for adc\n");
-    printf("adc_init return: %d\n", adc_init(&my_adc));
+    adc_init(&my_adc);
+    adc_read(my_adc, &val);
+    printf("       ADC return value: %f\n", val);
+    adc_deinit(&my_adc);
+}
 
-    printf("adc_read return: %d\n", adc_read(my_adc, &val));
-    printf("value return: %f\n", val);
+int command_facttest(int argc, const char * const * argv )
+{
+    float temp  = hts221_getTemp();
 
-    printf("adc_deinit return: %d\n", adc_deinit(&my_adc));
+//Test: Display WNC part info and SIM card info
+//Test: Display LTE RSSI information
+    command_WNCInfo(0,NULL);
+    printf("\n");
+    command_WWANStatus(0,NULL);
+    printf("\n");
+
+//Test: Read ADC: Ambient Light Sensor 
+    command_adc(0,NULL);
+    printf("\n");
+
+//Test: Read/Display Temprature information
+    printf("       HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+    printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+    printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
+//Test: User Push-Button/LED test
+
+//
+// The following tests are TBD at this time.
+//Test: Display GPS RSSI information
+//Test: Read I2C Pmod: TBD 
+//Test: Read SPI Pmod: TBD 
 
 }
 

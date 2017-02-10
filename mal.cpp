@@ -237,6 +237,24 @@ char *getOperatingMode(json_keyval *kv, int kvsize) {
 }
 
 //
+// get radio mode, service provide and roaming status info
+//
+// Input:   pointer to a key/value structure
+//          size of the key/value structure
+// Output:  Key/Value pairs are updated with information that is returned
+//
+// Returns: number of Key/Value pairs
+//
+int get_wwan_status( json_keyval *kv, int kvsize) {
+    char rstr[500];
+    char jcmd[] = "{ \"action\" : \"get_wwan_serving_system_status\" }";
+
+    send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    return parse_maljson (rstr, kv, kvsize);
+}
+
+
+//
 // GPS functions
 //
 

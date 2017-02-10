@@ -8,6 +8,9 @@
 #include "binio.h"
 #include "mytimer.h"
 
+GPIOPIN_IN gpio_input;
+size_t     gpio_input_timer;
+
 GPIOPIN gpios[] = {
 //  nbr, rate, val, hndl, timr
     2,    0,   0,    0,   0,
@@ -34,6 +37,9 @@ void binary_io_init(void)
     gpio_dir(gpios[1].hndl, GPIO_DIR_OUTPUT);
     gpio_dir(gpios[2].hndl, GPIO_DIR_OUTPUT);
     gpio_dir(gpios[3].hndl, GPIO_DIR_OUTPUT);
+
+    gpio_init( GPIO_PIN_4,  &gpio_input.hndl );
+    gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT);
 }
 
 void binario_io_close(void)
@@ -42,6 +48,7 @@ void binario_io_close(void)
     gpio_deinit( &gpios[1].hndl);
     gpio_deinit( &gpios[2].hndl);
     gpio_deinit( &gpios[3].hndl);
+    gpio_deinit( &gpio_input.hndl);
 }
 
 
@@ -96,3 +103,34 @@ void do_gpio_blink( int i, int interval )
 //printf("started timer GPIO_PIN_%d/%d (%d) - [%s]\n", gpios[i].nbr,i,gpios[i].timr,active_IoTtimer()?"RUNNING":"STOPPED");
         }
 }
+
+void my_gpio_cb( size_t val )
+{
+    static gpio_level_t last_val=0;
+
+    if (val != last_val) {
+        val = last_val;
+        printf("detected a GPIO input pin change\n");
+        }
+}
+
+void gpio_input_timer_task(size_t timer_id, void * user_data)
+{
+    printf("GPIO READ (%d): ", gpio_read(gpio_input.hndl, &gpio_input.val));
+    printf("(%d)\n",gpio_input.val);
+    gpio_input.func(gpio_input.val);
+}
+
+void monitor_gpios( void )
+{
+    gpio_input.nbr=4;
+    gpio_input.rate=0;
+    printf("initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
+    printf(": (%d)\n",gpio_input.val);
+    gpio_input.func = my_gpio_cb;
+
+    start_IoTtimers();
+    gpio_input.timr = create_IoTtimer(1, gpio_input_timer_task, TIMER_PERIODIC, NULL);
+}
+
+

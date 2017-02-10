@@ -65,12 +65,14 @@ extern int command_http_get(int argc, const char * const * argv);
 extern int command_iotmon(int argc, const char * const * argv );
 extern int command_factest(int argc, const char * const * argv );
 extern int command_iothelp(int argc, const char * const * argv );
+extern int command_WWANStatus(int, char const* const*);
 extern int command_WNCInfo(int argc, const char * const * argv );
 extern int command_tx2m2x(int argc, const char * const * argv );
 extern int command_exit(int argc, const char * const * argv );
 extern int command_gps(int argc, const char * const * argv );
 extern int command_adc(int argc, const char * const * argv );
 extern int command_headless(int argc, const char * const * argv );
+extern int command_facttest(int argc, const char * const * argv );
 
 extern void sigint_cb (void);
 extern cmd_entry *current_table;

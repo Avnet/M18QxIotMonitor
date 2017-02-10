@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
 
     
     binary_io_init();
+//    monitor_gpios();
 
     if (hts221_initialize() < 0) {
         fprintf( stderr, "HTS221 initialization failed\n");
