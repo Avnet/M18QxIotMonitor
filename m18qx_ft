@@ -1,0 +1,69 @@
+#! /bin/sh
+
+case "$1" in
+  start)
+        echo -n "Checking for and starting the WNC M18Qx IoT Factory Test daemon: "
+        search_dir="/data/test/"
+        for entry in `ls $search_dir`
+        do
+            subsys_temp=`cat $search_dir/$entry/fact_test`
+            if [ "$subsys_temp" == "fact" ]
+            then
+                break
+            fi
+        done
+        counter=0
+        while [ ${counter} -le 10 ]
+        do
+           msstate=`cat $search_dir/$entry/state`
+           if [ "$msstate" == "ONLINE" ]
+           then
+              break
+           fi
+           counter=$(( $counter + 1 ))
+           sleep 1
+        done
+		
+        counter=0
+        while [ ${counter} -le 30 ]
+        do
+			if ifconfig | grep "rmnet0"
+			then
+				killall -9 netmgrd
+				killall -9 qmuxd
+				break				
+			else
+				counter=$(( $counter + 1 ))
+				sleep 1
+			fi
+        done
+
+		rmnetsetup &
+
+		cfg_dir="/data/user/mm_conf"
+		if [ ! -e ${cfg_dir} ]; then
+			mkdir -p ${cfg_dir}
+			mkdir -p ${cfg_dir}/../db
+			mkdir -p ${cfg_dir}/../profiles
+		fi
+
+		start-stop-daemon -S -b -a /usr/sbin/malmanager -- -c ${cfg_dir}/malmanager.cfg -p /etc/mal_default_cfg/
+		echo "done"
+	;;
+  stop)
+	echo -n "Stopping malmanager: "
+	start-stop-daemon -K -x /bin/malmanager
+	sync
+	echo "done"
+	;;
+  restart)
+  	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: m18qx_ft { start | stop | restart }" >&2
+	exit 1
+	;;
+esac
+
+exit 0
