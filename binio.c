@@ -13,10 +13,9 @@ size_t     gpio_input_timer;
 
 GPIOPIN gpios[] = {
 //  nbr, rate, val, hndl, timr
-    2,    0,   0,    0,   0,
-    7,    0,   0,    0,   0,
-    3,    0,   0,    0,   0,
-    95,   0,   0,    0,   0,
+    92,   0,   0,    0,   0,   //RED LED
+    101,  0,   0,    0,   0,   //GREEN LED
+    102,  0,   0,    0,   0,   //BLUE LED
     };
 #define _MAX_GPIO	(sizeof(gpio)/sizeof(GPIOPIN))
 
@@ -28,18 +27,16 @@ const int _max_gpiopins = _MAX_GPIOPINS;
 //
 void binary_io_init(void)
 {
-    gpio_init( GPIO_PIN_2,  &gpios[0].hndl );
-    gpio_init( GPIO_PIN_7,  &gpios[1].hndl );
-    gpio_init( GPIO_PIN_3,  &gpios[2].hndl );
-    gpio_init( GPIO_PIN_95, &gpios[3].hndl );
+    printf("gpio_init(GPIO_PIN_92)=%d\n",gpio_init( GPIO_PIN_92,   &gpios[0].hndl ));
+    printf("gpio_init(GPIO_PIN_101)=%d\n",gpio_init( GPIO_PIN_101,  &gpios[1].hndl ));
+    printf("gpio_init(GPIO_PIN_102)=%d\n",gpio_init( GPIO_PIN_102,  &gpios[2].hndl ));
 
-    gpio_dir(gpios[0].hndl, GPIO_DIR_OUTPUT);
-    gpio_dir(gpios[1].hndl, GPIO_DIR_OUTPUT);
-    gpio_dir(gpios[2].hndl, GPIO_DIR_OUTPUT);
-    gpio_dir(gpios[3].hndl, GPIO_DIR_OUTPUT);
+    printf("gpio_dir(GPIO_PIN_92)=%d\n",gpio_dir(gpios[0].hndl, GPIO_DIR_OUTPUT));
+    printf("gpio_dir(GPIO_PIN_101)=%d\n",gpio_dir(gpios[1].hndl, GPIO_DIR_OUTPUT));
+    printf("gpio_dir(GPIO_PIN_102)=%d\n",gpio_dir(gpios[2].hndl, GPIO_DIR_OUTPUT));
 
-    gpio_init( GPIO_PIN_4,  &gpio_input.hndl );
-    gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT);
+    printf("gpio_init(GPIO_PIN_98)=%d\n",gpio_init( GPIO_PIN_98,  &gpio_input.hndl ));  //SW3
+    printf("gpio_dir(GPIO_PIN_98)=%d\n",gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT));
 }
 
 void binario_io_close(void)

@@ -60,15 +60,15 @@ microrl_t *prl = &rl;
 const cmd_entry mon_command_table[] =
   {
   max_moncommands, ";",           "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
-  0,               ";",           "GPIO's are: GPIO_PIN_95, GPIO_PIN_2, GPIO_PIN_7, GPIO_PIN_3 currently supported.\n",  NULL,
+  0,               ";",           "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",  NULL,
   0, "?",           "?             Displays this help screen",                                              command_help,
   0, "HELP",        "help          Displays this help screen",                                              command_help,
   0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
-  0, "GPIO",        "gpion # # #   Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
+  0, "GPIO",        "gpion # #     Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
   0, "BLINK",       "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",command_blink, 
   0, "HTS221",      "HTS221        Display information about the HTS221 sensor.",                           command_hts221,
   0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
-  0, "ADC",         "ADC #         Read ADC #                                                          ",   command_adc,
+  0, "ADC",         "ADC           Read ADC                                                            ",   command_adc,
   0, "I2CPEEK",     "I2CPEEK <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
   0, "I2CPOKE",     "I2CPOKE <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
   0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_factest,
@@ -353,10 +353,9 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
     int k=0, done;
 
     switch(indx) {
-        case 2:  //GPIO_02
-        case 3:  //GPIO_03
-        case 7:  //GPIO_07
-        case 95: //GPIO_95
+        case 92:  //GPIO_02
+        case 101:  //GPIO_03
+        case 102:  //GPIO_07
             do {
                 done = (gpios[k].nbr == indx);
                 k++;
@@ -382,10 +381,9 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     int k=0, done, state;
     
     switch(indx) {
-        case 2:  //GPIO_02
-        case 3:  //GPIO_03
-        case 7:  //GPIO_07
-        case 95: //GPIO_95
+        case 92:  //GPIO_02
+        case 101:  //GPIO_03
+        case 102:  //GPIO_07
             do {
                 done = (gpios[k].nbr == indx);
                 k++;
@@ -499,10 +497,10 @@ int command_adc(int argc, const char * const * argv )
     adc_handle_t my_adc=(adc_handle_t)NULL;
     float val;
 
-    adc_init(&my_adc);
-    adc_read(my_adc, &val);
+    printf("adc_init=%d\n",adc_init(&my_adc));
+    printf("adc_init=%d\n",adc_read(my_adc, &val));
     printf("       ADC return value: %f\n", val);
-    adc_deinit(&my_adc);
+    printf("adc_init=%d\n",adc_deinit(&my_adc));
 }
 
 int command_facttest(int argc, const char * const * argv )

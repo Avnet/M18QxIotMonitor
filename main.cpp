@@ -41,6 +41,7 @@
 #include "microrl.h"
 #include "iot_monitor.h"
 #include "hts221.h"
+#include "lis2dw12.h"
 #include "binio.h"
 
 
@@ -79,13 +80,12 @@ int main(int argc, char *argv[])
            }
 
     
-    binary_io_init();
+//    binary_io_init();
 //    monitor_gpios();
 
-    if (hts221_initialize() < 0) {
-        fprintf( stderr, "HTS221 initialization failed\n");
-        app_exit();
-        }
+    printf("hts221_initialize() = %d\n", hts221_initialize());
+    printf("lis2dw12_initialize() = %d\n",lis2dw12_initialize());
+    printf("lis2dw12_getDeviceID()= 0x%02X\n",lis2dw12_getDeviceID());
 
     if( headless ){
         command_headless(argc, argv );

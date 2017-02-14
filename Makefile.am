@@ -1,4 +1,4 @@
-jim_demo_CPPFLAGS = -I. -Wall \
+jim_demo_CPPFLAGS = -I. -Wall -static \
         -g -O0 \
         -fno-inline \
         -Wl,--unresolved-symbols=ignore-in-shared-libs \
@@ -9,7 +9,7 @@ jim_demo_CPPFLAGS = -I. -Wall \
         -lhw 
 
 
-jim_demo_CFLAGS = -Wall \
+jim_demo_CFLAGS = -Wall -static \
         -g -O0 \
         -pthread \
         -fno-inline \
@@ -19,12 +19,12 @@ jim_demo_CFLAGS = -Wall \
         -lcurl \
         -lhw 
 
-AM_LDFLAGS = -ljson-c -lcurl -lpthread -lhw  
+AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw  
 
 iot_monitor_SOURCES = main.cpp microrl.cpp MyBuffer.cpp \
                       commands.cpp mal.cpp maljson.cpp \
                       binio.c jsmn.c  hts221.c mytimer.c \
-                      http.c
+                      http.c lis2dw12.c
 
 bin_PROGRAMS = iot_monitor
 
