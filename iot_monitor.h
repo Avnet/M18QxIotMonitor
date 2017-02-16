@@ -3,6 +3,8 @@
 #ifndef __IOT_MONITOR_H__
 #define __IOT_MONITOR_H__
 
+#ifdef __cplusplus
+
 #include <cctype>
 #include <cstddef>
 #include <cstring>
@@ -11,6 +13,8 @@
 #include <algorithm>
 #include <functional>
 #include <string>
+
+#endif
 
 #define my_getc()	getc()
 #define my_puts(s)	puts(s)
@@ -21,16 +25,15 @@
 #define MIN(a,b)	(((a)<(b))?(a):(b))
 
 #define MONITOR_PROMPT	((char*)"MON> ")
-#define FACTORY_PROMPT	((char*)"FAC> ")
+#define FACTORY_PROMPT	((char*)"WNC> ")
 
-// struct of string for the command and pointer to function 
-typedef struct {
-  int max_elements;
-  const char *commandp;
-  const char *help_str;
-  int (*func_p)(int, const char * const *);
-  } cmd_entry;
+#define DEFAULT_DEVICE_ID	"2ac9dc89132469eb809bea6e3a95d675"
+#define DEFAULT_API_KEY         "6cd9c60f4a4e5d91d0ec4cc79536c661"
+#define DEFAULT_API_STREAM         "temp"
 
+#define my_debug(x,...)	!headless?printf("DBG:" x,##__VA_ARGS__):(__VA_ARGS__);
+
+#ifdef __cplusplus
 typedef struct {
   std::string firmVer;
   std::string malwarVer;
@@ -42,12 +45,26 @@ typedef struct {
   std::string msisdn;
   std::string opMode;
   } sysinfo;
+extern sysinfo mySystem;
+#endif
   
+// struct of string for the command and pointer to function 
+typedef struct {
+  int max_elements;
+  const char *commandp;
+  const char *help_str;
+  int (*func_p)(int, const char * const *);
+  } cmd_entry;
+
+extern const char *device_id;
+extern const char *api_key;
+extern const char *stream_name;
+
 extern char* strupr(char* s);
 
 extern const cmd_entry mon_command_table[];
 extern const cmd_entry iot_command_table[];
-extern sysinfo mySystem;
+extern int headless;
 
 extern int command_help(int argc, const char * const * argv );
 extern int command_gpio(int argc, const char * const * argv );
@@ -63,7 +80,7 @@ extern int command_comscmd(int argc, const char * const * argv);
 extern int command_http_put(int argc, const char * const * argv);
 extern int command_http_get(int argc, const char * const * argv);
 extern int command_iotmon(int argc, const char * const * argv );
-extern int command_factest(int argc, const char * const * argv );
+extern int command_wnctest(int argc, const char * const * argv );
 extern int command_iothelp(int argc, const char * const * argv );
 extern int command_WWANStatus(int, char const* const*);
 extern int command_WNCInfo(int argc, const char * const * argv );
@@ -78,6 +95,7 @@ extern void sigint_cb (void);
 extern cmd_entry *current_table;
 
 extern int max_moncommands, max_iotcommands;
+
 extern char * completion_array [];
 
 void set_cmdhandler(    void (*of)(const char*),  //function to call to output text

@@ -46,6 +46,7 @@
 
 
 sysinfo mySystem;
+int headless=false;
 
 void my_putchar(const char *c)
 {
@@ -59,18 +60,27 @@ int main(int argc, char *argv[])
     int c;
     void app_exit(void);
 
-    int headless=false;
 
-    while((c=getopt(argc,argv,"f")) != -1 )
+    while((c=getopt(argc,argv,"fd:a:s:")) != -1 )
         switch(c) {
+           case 'd': //device_id
+               device_id = optarg;
+               printf("setting Device ID to [%s]\n",device_id);
+               break;
+           case 'a': //api_key
+               api_key = optarg;
+               printf("setting API Key to [%s]\n",api_key);
+               break;
+           case 's': //stream_name
+               stream_name = optarg;
+               printf("setting Stream Name to [%s]\n",stream_name);
+               break;
            case 'f':
                headless=true;
                break;
            case '?':
-               if (optopt == 'c')
+               if (optopt == 'a' || optopt == 's' ||optopt == 'd')
                  fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-               else if (isprint (optopt))
-                 fprintf (stderr, "Unknown option `-%c'.\n", optopt);
                else
                  fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
                app_exit();
@@ -80,12 +90,12 @@ int main(int argc, char *argv[])
            }
 
     
-//    binary_io_init();
-//    monitor_gpios();
+    binary_io_init();
+    monitor_gpios();
 
-    printf("hts221_initialize() = %d\n", hts221_initialize());
-    printf("lis2dw12_initialize() = %d\n",lis2dw12_initialize());
-    printf("lis2dw12_getDeviceID()= 0x%02X\n",lis2dw12_getDeviceID());
+    my_debug("hts221_initialize() = %d\n", hts221_initialize());
+    my_debug("lis2dw12_initialize() = %d\n",lis2dw12_initialize());
+    my_debug("lis2dw12_getDeviceID()= 0x%02X\n",lis2dw12_getDeviceID());
 
     if( headless ){
         command_headless(argc, argv );

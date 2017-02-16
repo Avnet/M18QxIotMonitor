@@ -24,9 +24,11 @@ extern "C" {
 #include "microrl_config.h"
 #include "microrl.h"
 #include "hts221.h"
+#include "lis2dw12.h"
 #include "binio.h"
 #include "mytimer.h"
 #include "http.h"
+#include "m2x.h"
 
 #include "mal.hpp"
 
@@ -57,6 +59,10 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 microrl_t rl;
 microrl_t *prl = &rl;
 
+const char *device_id   = DEFAULT_DEVICE_ID;
+const char *api_key     = DEFAULT_API_KEY;
+const char *stream_name = DEFAULT_API_STREAM;
+
 const cmd_entry mon_command_table[] =
   {
   max_moncommands, ";",           "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
@@ -69,9 +75,9 @@ const cmd_entry mon_command_table[] =
   0, "HTS221",      "HTS221        Display information about the HTS221 sensor.",                           command_hts221,
   0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
   0, "ADC",         "ADC           Read ADC                                                            ",   command_adc,
-  0, "I2CPEEK",     "I2CPEEK <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
-  0, "I2CPOKE",     "I2CPOKE <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
-  0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_factest,
+  0, "I2CPEEK",     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
+  0, "I2CPOKE",     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
+  0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_wnctest,
   0, "EXIT",        "exit          End Program execution",                                                  command_exit,
   };
 #define _MAX_MONCOMMANDS	(sizeof(mon_command_table)/sizeof(cmd_entry))
@@ -84,7 +90,7 @@ const cmd_entry fac_command_table[] =
   0, "HELP",        "help          Displays this help screen",                 command_help,
   0, "WNCINFO",     "wncinfo       Displays the WNC module information",       command_WNCInfo, 
   0, "WWANSTAT",    "wwanstat      Displays the WWAN status information",      command_WWANStatus,
-  0, "TX2M2X",      "tx2m2x ## X   Tx data from X at ## sec intervals to M2X", command_tx2m2x, 
+  0, "TX2M2X",      "tx2m2x Y X Z  Tx data Y times every X secs from device Z",command_tx2m2x, 
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
   0, "EXIT",        "exit          End Program execution",                     command_exit,
   };
@@ -104,13 +110,15 @@ int command_comscmd(int argc, const char * const * argv);
 int command_http_put(int argc, const char * const * argv);
 int command_http_get(int argc, const char * const * argv);
 int command_iotmon(int argc, const char * const * argv );
-int command_factest(int argc, const char * const * argv );
+int command_wnctest(int argc, const char * const * argv );
 int command_tx2m2x(int argc, const char * const * argv );
 int command_WNCInfo(int argc, const char * const * argv );
 int command_WWANStatus(int, char const* const*);
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
 int command_exit(int, char const* const*);
+
+void do_hts2m2x(void);
 
 void sigint_cb (void);
 
@@ -421,15 +429,19 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 
 int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv )
 {
-  unsigned char nbr  = (unsigned char)atoi(argv[2]);  //get number of bytes to read
+  unsigned char nbr  = (unsigned char)atoi(argv[3]);  //get number of bytes to read
   unsigned char buf[100];                 //use a 100 byte working buffer
-  char    reg;
+  char    reg, dev;
   int     i;
 
   memset(buf,0x00,sizeof(buf));
-  sscanf(argv[1],"%x",(int)&reg);
+  sscanf(argv[2],"%x",(int)&reg);
+  sscanf(argv[1],"%x",(int)&dev);
 
-  hts221_read(reg, buf, nbr);
+  if( dev == 0x19 )
+;//    lis2dw12_read(reg, buf, nbr);
+  else
+    hts221_read(reg, buf, nbr);
 
   for (i=0; i<nbr; i+=8) 
     printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
@@ -438,37 +450,25 @@ int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv 
   return 2;
 }
 
-
-int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
-{
-    char*  sensor    = (char*)argv[1]; 
-    int    i, interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
-
-    for (i=0; i<_max_m2xfunctions; i++) {
-        if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
-            (m2xfunctions[i]).func(interval);
-        }
-}
-
 int command_i2cpoke(int, char const* const*)
 {
     printf("called i2cpoke\n");
 }
 
-int command_factest(int, char const* const*)
+int command_wnctest(int, char const* const*)
 {
     current_table = (cmd_entry*)fac_command_table;
     microrl_setprompt (prl, FACTORY_PROMPT, strlen(FACTORY_PROMPT)) ;
-    printf("called factest\n");
+    printf("Entered WNC command mode.\n");
 }
 
 int command_headless(int argc, const char * const * argv )
 {
     void app_exit();
 
-    do_gpio_blink( 1, 1 );
-    sleep(60);
-    app_exit();
+    do_gpio_blink( 0, 1 );
+    while(1) sleep(30);
+//    app_exit();
 }
 
 
@@ -497,11 +497,12 @@ int command_adc(int argc, const char * const * argv )
     adc_handle_t my_adc=(adc_handle_t)NULL;
     float val;
 
-    printf("adc_init=%d\n",adc_init(&my_adc));
-    printf("adc_init=%d\n",adc_read(my_adc, &val));
+    my_debug("adc_init=%d\n",adc_init(&my_adc));
+    my_debug("adc_init=%d\n",adc_read(my_adc, &val));
     printf("       ADC return value: %f\n", val);
-    printf("adc_init=%d\n",adc_deinit(&my_adc));
+    my_debug("adc_init=%d\n",adc_deinit(&my_adc));
 }
+
 
 int command_facttest(int argc, const char * const * argv )
 {
@@ -530,5 +531,19 @@ int command_facttest(int argc, const char * const * argv )
 //Test: Read I2C Pmod: TBD 
 //Test: Read SPI Pmod: TBD 
 
+}
+
+
+//  tx2m2x Y X Z  Tx data Y times every X secs from device Z
+int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
+{
+    char*  sensor    = (char*)argv[3]; 
+    int    i, interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
+    int    iterations  = (unsigned char)atoi(argv[1]);   //nbr of times to send data
+
+    for (i=0; i<_max_m2xfunctions; i++) {
+        if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
+            (m2xfunctions[i]).func(interval, iterations);
+        }
 }
 

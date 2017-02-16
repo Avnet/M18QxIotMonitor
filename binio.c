@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <sys/types.h>
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
 
+#include "iot_monitor.h"
 #include "binio.h"
 #include "mytimer.h"
+#include "m2x.h"
 
 GPIOPIN_IN gpio_input;
 size_t     gpio_input_timer;
@@ -21,6 +24,7 @@ GPIOPIN gpios[] = {
 
 #define _MAX_GPIOPINS	(sizeof(gpios)/sizeof(GPIOPIN))
 const int _max_gpiopins = _MAX_GPIOPINS;
+
 
 //
 //  initialize all the binary i/o pins in the system
@@ -106,15 +110,24 @@ void my_gpio_cb( size_t val )
     static gpio_level_t last_val=0;
 
     if (val != last_val) {
-        val = last_val;
-        printf("detected a GPIO input pin change\n");
+        if( !val ) {
+            do_hts2m2x();
+            printf("detected a SW2 Press\n");
+            }
+        else
+            printf("detected a SW2 Release\n");
+        last_val=val;
         }
 }
 
 void gpio_input_timer_task(size_t timer_id, void * user_data)
 {
-    printf("GPIO READ (%d): ", gpio_read(gpio_input.hndl, &gpio_input.val));
-    printf("(%d)\n",gpio_input.val);
+    gpio_deinit( &gpio_input.hndl);
+    my_debug("gpio_init(GPIO_PIN_98)=%d\n",gpio_init( GPIO_PIN_98,  &gpio_input.hndl ));  //SW3
+    my_debug("gpio_dir(GPIO_PIN_98)=%d\n",gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT));
+
+    my_debug("timer task read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
+    my_debug("(%d)\n",gpio_input.val);
     gpio_input.func(gpio_input.val);
 }
 
@@ -122,6 +135,7 @@ void monitor_gpios( void )
 {
     gpio_input.nbr=4;
     gpio_input.rate=0;
+    gpio_input.val=0;
     printf("initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
     printf(": (%d)\n",gpio_input.val);
     gpio_input.func = my_gpio_cb;

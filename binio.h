@@ -44,6 +44,8 @@ void binario_io_close(void);
 #endif
 
 
+#include <sys/types.h>
+#include <stdint.h>
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
 

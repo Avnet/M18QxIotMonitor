@@ -12,7 +12,7 @@
 
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
-
+#include "iot_monitor.h"
 #include "lis2dw12.h"
 
 //#define  LIS2DW12_SAD	0x18
@@ -62,13 +62,7 @@ int lis2dw12_initialize(void) {
         return (-1);
         }
 
-//    if (lis2dw12_getDeviceID() != LIS2DW12_WHO_AM_I_DEF)
-//    	return (-2);
-
-    printf("init:i2c_write(0x%02X, 0x%02x)=%d\n", LIS2DW12_SAD, reg_addr, i2c_write(lis2dw12_i2c, LIS2DW12_SAD, &reg_addr, 1, I2C_NO_STOP));
-    printf("init:i2c_read(0x%02x)=%d\n", LIS2DW12_SAD, i2c_read( lis2dw12_i2c, LIS2DW12_SAD, &value_read, 1));
-    printf("init:value_read=0x%02X\n",value_read);
-    if (value_read != LIS2DW12_WHO_AM_I_DEF)
+    if (lis2dw12_getDeviceID() != LIS2DW12_WHO_AM_I_DEF)
     	return (-2);
     else	
         return 0;
