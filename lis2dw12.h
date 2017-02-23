@@ -51,6 +51,7 @@ enum {
 
 #define to_dev(obj) container_of(obj, struct device, kobj)
 
+
 #if 0  //jmf
 struct reg_rw {
 	uint8_t const address;
@@ -263,6 +264,10 @@ extern "C" {
 
 int      lis2dw12_initialize(void);
 uint8_t  lis2dw12_getDeviceID(void);
+uint8_t  lis2dw12_read_byte(uint8_t reg_addr) ;
+uint16_t lis2dw12_read_word(uint8_t reg_addr) ;
+void     lis2dw12_write_reg(uint8_t reg_addr, uint8_t value) ;
+void     lis2dw12_read(uint8_t reg_addr, uint8_t *buf, int nbr) ;
 
 #ifdef __cplusplus
 }

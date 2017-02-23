@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     void app_exit(void);
 
 
-    while((c=getopt(argc,argv,"fd:a:s:")) != -1 )
+    while((c=getopt(argc,argv,"fd:a:t:l:")) != -1 )
         switch(c) {
            case 'd': //device_id
                device_id = optarg;
@@ -71,9 +71,13 @@ int main(int argc, char *argv[])
                api_key = optarg;
                printf("setting API Key to [%s]\n",api_key);
                break;
-           case 's': //stream_name
-               stream_name = optarg;
-               printf("setting Stream Name to [%s]\n",stream_name);
+           case 'l': //light sensor stream_name
+               adc_stream_name = optarg;
+               printf("setting Stream Name to [%s]\n",adc_stream_name);
+               break;
+           case 't': //temp stream_name
+               temp_stream_name = optarg;
+               printf("setting Stream Name to [%s]\n",temp_stream_name);
                break;
            case 'f':
                headless=true;
@@ -91,15 +95,17 @@ int main(int argc, char *argv[])
 
     
     binary_io_init();
-    monitor_gpios();
 
     my_debug("hts221_initialize() = %d\n", hts221_initialize());
     my_debug("lis2dw12_initialize() = %d\n",lis2dw12_initialize());
     my_debug("lis2dw12_getDeviceID()= 0x%02X\n",lis2dw12_getDeviceID());
 
     if( headless ){
+        printf("running in HEADLESS mode\n");
+//        monitor_gpios();
+//        do_gpio_blink( 1, 1 );
         command_headless(argc, argv );
-        exit(0);
+//        exit(0);
         }
     
     print_banner();

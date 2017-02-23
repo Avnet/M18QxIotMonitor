@@ -1,5 +1,4 @@
 
-
 #ifndef __BINIO_H__
 #define __BINIO_H__
 

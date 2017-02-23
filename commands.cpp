@@ -59,9 +59,10 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 microrl_t rl;
 microrl_t *prl = &rl;
 
-const char *device_id   = DEFAULT_DEVICE_ID;
-const char *api_key     = DEFAULT_API_KEY;
-const char *stream_name = DEFAULT_API_STREAM;
+const char *device_id        = DEFAULT_DEVICE_ID;
+const char *api_key          = DEFAULT_API_KEY;
+const char *adc_stream_name  = DEFAULT_ADC_API_STREAM;
+const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {
@@ -382,6 +383,8 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
      }
 }
 
+//
+// blink gpio_pin_XXX 1
 int command_blink(int argc __attribute__((unused)), const char * const * argv )
 {
     int indx = atoi(&argv[1][9]);
@@ -439,7 +442,7 @@ int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv 
   sscanf(argv[1],"%x",(int)&dev);
 
   if( dev == 0x19 )
-;//    lis2dw12_read(reg, buf, nbr);
+    lis2dw12_read(reg, buf, nbr);
   else
     hts221_read(reg, buf, nbr);
 
@@ -464,11 +467,10 @@ int command_wnctest(int, char const* const*)
 
 int command_headless(int argc, const char * const * argv )
 {
-    void app_exit();
+    void app_exit(void);
 
-    do_gpio_blink( 0, 1 );
-    while(1) sleep(30);
-//    app_exit();
+    command_demo_mode(argc, argv);
+    app_exit();
 }
 
 

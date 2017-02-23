@@ -24,8 +24,9 @@ int active_IoTtimer(void)
 
 int start_IoTtimers()
 {
-    if (IoTtimers_running)
-        return IoTtimers_running++;
+    IoTtimers_running++;
+    if (IoTtimers_running>1)
+        return IoTtimers_running;
 
     if(pthread_create(&g_thread_id, NULL, _timer_thread, NULL)) 
         return 0;

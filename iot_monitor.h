@@ -1,5 +1,4 @@
 
-
 #ifndef __IOT_MONITOR_H__
 #define __IOT_MONITOR_H__
 
@@ -29,9 +28,11 @@
 
 #define DEFAULT_DEVICE_ID	"2ac9dc89132469eb809bea6e3a95d675"
 #define DEFAULT_API_KEY         "6cd9c60f4a4e5d91d0ec4cc79536c661"
-#define DEFAULT_API_STREAM         "temp"
+#define DEFAULT_TEMP_API_STREAM "temp"
+#define DEFAULT_ADC_API_STREAM  "light_sens"
 
-#define my_debug(x,...)	!headless?printf("DBG:" x,##__VA_ARGS__):(__VA_ARGS__);
+//#define my_debug(x,...)	!headless?printf("DBG:" x,##__VA_ARGS__):(__VA_ARGS__);
+#define my_debug(x,...)	(__VA_ARGS__);
 
 #ifdef __cplusplus
 typedef struct {
@@ -58,7 +59,8 @@ typedef struct {
 
 extern const char *device_id;
 extern const char *api_key;
-extern const char *stream_name;
+extern const char *temp_stream_name;
+extern const char *adc_stream_name;
 
 extern char* strupr(char* s);
 
@@ -90,6 +92,15 @@ extern int command_gps(int argc, const char * const * argv );
 extern int command_adc(int argc, const char * const * argv );
 extern int command_headless(int argc, const char * const * argv );
 extern int command_facttest(int argc, const char * const * argv );
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern int command_demo_mode(int, const char * const *);
+#ifdef __cplusplus
+}
+#endif
+
 
 extern void sigint_cb (void);
 extern cmd_entry *current_table;

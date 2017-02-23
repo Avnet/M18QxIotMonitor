@@ -31,16 +31,16 @@ const int _max_gpiopins = _MAX_GPIOPINS;
 //
 void binary_io_init(void)
 {
-    printf("gpio_init(GPIO_PIN_92)=%d\n",gpio_init( GPIO_PIN_92,   &gpios[0].hndl ));
-    printf("gpio_init(GPIO_PIN_101)=%d\n",gpio_init( GPIO_PIN_101,  &gpios[1].hndl ));
-    printf("gpio_init(GPIO_PIN_102)=%d\n",gpio_init( GPIO_PIN_102,  &gpios[2].hndl ));
+    gpio_init( GPIO_PIN_92,   &gpios[0].hndl );
+    gpio_init( GPIO_PIN_101,  &gpios[1].hndl );
+    gpio_init( GPIO_PIN_102,  &gpios[2].hndl );
 
-    printf("gpio_dir(GPIO_PIN_92)=%d\n",gpio_dir(gpios[0].hndl, GPIO_DIR_OUTPUT));
-    printf("gpio_dir(GPIO_PIN_101)=%d\n",gpio_dir(gpios[1].hndl, GPIO_DIR_OUTPUT));
-    printf("gpio_dir(GPIO_PIN_102)=%d\n",gpio_dir(gpios[2].hndl, GPIO_DIR_OUTPUT));
+    gpio_dir(gpios[0].hndl, GPIO_DIR_OUTPUT);
+    gpio_dir(gpios[1].hndl, GPIO_DIR_OUTPUT);
+    gpio_dir(gpios[2].hndl, GPIO_DIR_OUTPUT);
 
-    printf("gpio_init(GPIO_PIN_98)=%d\n",gpio_init( GPIO_PIN_98,  &gpio_input.hndl ));  //SW3
-    printf("gpio_dir(GPIO_PIN_98)=%d\n",gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT));
+    gpio_init( GPIO_PIN_98,  &gpio_input.hndl );  //SW3
+    gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT);
 }
 
 void binario_io_close(void)
@@ -66,9 +66,6 @@ void gpio_timer_task(size_t timer_id, void * user_data)
         }
     while (!done && i<_max_gpiopins);
     --i;
-
-//    if (!done)
-//        printf("we got a problem\n");
 
     const time_t t = time(0);
 
@@ -112,10 +109,10 @@ void my_gpio_cb( size_t val )
     if (val != last_val) {
         if( !val ) {
             do_hts2m2x();
-            printf("detected a SW2 Press\n");
+            printf("-detected a SW2 Press\n");
             }
         else
-            printf("detected a SW2 Release\n");
+            printf("-detected a SW2 Release\n");
         last_val=val;
         }
 }
@@ -136,7 +133,7 @@ void monitor_gpios( void )
     gpio_input.nbr=4;
     gpio_input.rate=0;
     gpio_input.val=0;
-    printf("initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
+    printf("-initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
     printf(": (%d)\n",gpio_input.val);
     gpio_input.func = my_gpio_cb;
 

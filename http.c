@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 #include <time.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "http.h"
 
@@ -111,6 +112,7 @@ static int http_post(http_info_t *http_req, const char *url)
 
     curl_easy_setopt(http_req->curl, CURLOPT_POST, 1L);
     curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
+    curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
     curl_easy_setopt(http_req->curl, CURLOPT_READFUNCTION, http_post_read_callback);
     curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
 
@@ -141,6 +143,7 @@ static int http_put(http_info_t *http_req, const char *url)
 
     curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
     curl_easy_setopt(http_req->curl, CURLOPT_UPLOAD, 1L);
+    curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
     curl_easy_setopt(http_req->curl, CURLOPT_PUT, 1L);
     curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
     curl_easy_setopt(http_req->curl, CURLOPT_READFUNCTION, http_upload_read_callback);
@@ -218,4 +221,81 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
     return 0;
 }
 
+
+size_t static write_callback_func(void *buffer, size_t size, size_t nmemb, void *userp)
+{
+    char *response_ptr =  (char*)userp;
+
+    strncpy(response_ptr, buffer, (size*nmemb));
+    return(size * nmemb);
+}
+
+int http_get(http_info_t *http_req, const char *url, char *response)
+{
+    CURLcode res;
+
+    if ((http_req == NULL) || (url == NULL)) {
+        return -1;
+        }
+
+    if (http_req->curl == NULL) 
+        return -2;
+
+    http_req->last_data = http_req->data_field;
+    http_req->total_len = http_field_len(http_req->data_field);
+
+    curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
+    curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
+    curl_easy_setopt(http_req->curl, CURLOPT_HTTPGET, 1);
+    curl_easy_setopt(http_req->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+    curl_easy_setopt(http_req->curl, CURLOPT_FOLLOWLOCATION, 1); 
+
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
+
+    res = curl_easy_perform(http_req->curl);
+    return (res != CURLE_OK) ? -res : 0;
+}
+
+
+
+//
+// This function is called to solicit an LED command from Flow based on accelerator and temp/humid data 
+//
+
+char *flow_get ( const char *flow_base_url, const char *flow_input_name, 
+                 const char *flow_device_name, const char *flow_server, 
+                 const char *get_cmd, char *response, int resp_size)
+{
+    int r;
+    http_info_t get_req;
+    char tmp_buff1[256];
+    char url[256];
+
+    memset(response, 0, resp_size);
+    memset(&get_req, 0, sizeof(http_info_t));
+    memset(tmp_buff1, 0, sizeof(tmp_buff1));
+    memset(url, 0, sizeof(url));
+
+    http_init(&get_req, 0);
+
+    sprintf(url, "%s/%s?serial=%s%s", flow_base_url, flow_input_name, flow_device_name, get_cmd);
+    get_req.header = http_add_field(get_req.header, tmp_buff1);
+
+    sprintf(tmp_buff1, "Host:%s", flow_server);
+    get_req.header = http_add_field(get_req.header, tmp_buff1);
+    get_req.header = http_add_field(get_req.header, "HTTP/1.1");
+    get_req.header = http_add_field(get_req.header, "Accept: */*");
+
+    do {
+        r=http_get(&get_req, url, response);
+        if (r < 0) 
+          sleep(30);
+        }
+    while( r );
+
+    http_deinit(&get_req);
+    return response;
+
+}
 

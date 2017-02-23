@@ -1,4 +1,2 @@
-start-stop-daemon -S -b -x "/data/jim/iot_monitor"
-echo "iot_monitor started" > /data/iotmon.txt
-
+start-stop-daemon -S -b -x /data/test/run_demo.sh
 

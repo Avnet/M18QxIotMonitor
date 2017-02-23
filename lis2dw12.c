@@ -15,7 +15,6 @@
 #include "iot_monitor.h"
 #include "lis2dw12.h"
 
-//#define  LIS2DW12_SAD	0x18
 #define  LIS2DW12_SAD	0x19
 
 //local caches

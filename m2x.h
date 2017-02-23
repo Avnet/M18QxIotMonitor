@@ -24,6 +24,7 @@ extern const int _max_m2xfunctions;
 extern size_t m2x_sensor_timer;
 
 extern void do_hts2m2x(void);
+extern void do_adc2m2x(void);
 
 #ifdef __cplusplus
 }

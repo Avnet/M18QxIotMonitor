@@ -1,6 +1,4 @@
 
-
-
 #ifndef __HTS221_H__
 #define __HTS221_H__
                
