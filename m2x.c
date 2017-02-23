@@ -54,7 +54,7 @@ void do_hts2m2x(void)
     float adc_voltage;
     char str_adc_voltage[16];
     
-    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\nStream Name=[%s]\n",
+    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
             device_id, api_key, temp_stream_name);
 
     start_data_service();
@@ -66,7 +66,7 @@ void do_hts2m2x(void)
     m2x_update_stream_value(device_id, api_key, temp_stream_name, str_adc_voltage);		
 
 
-    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\nStream Name=[%s]\n",
+    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
             device_id, api_key, "humid");
     adc_voltage = hts221_getHumid()/10;
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
@@ -136,7 +136,7 @@ void do_adc2m2x(void)
     float adc_voltage;
     char str_adc_voltage[16];
     
-    printf("-Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\nStream Name=[%s]\n",
+    printf("-Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
             device_id, api_key, adc_stream_name);
 
     start_data_service();

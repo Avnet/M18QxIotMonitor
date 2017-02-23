@@ -65,19 +65,19 @@ int main(int argc, char *argv[])
         switch(c) {
            case 'd': //device_id
                device_id = optarg;
-               printf("setting Device ID to [%s]\n",device_id);
+               printf("-setting Device ID to [%s]\n",device_id);
                break;
            case 'a': //api_key
                api_key = optarg;
-               printf("setting API Key to [%s]\n",api_key);
+               printf("-setting API Key to [%s]\n",api_key);
                break;
            case 'l': //light sensor stream_name
                adc_stream_name = optarg;
-               printf("setting Stream Name to [%s]\n",adc_stream_name);
+               printf("-setting Stream Name to [%s]\n",adc_stream_name);
                break;
            case 't': //temp stream_name
                temp_stream_name = optarg;
-               printf("setting Stream Name to [%s]\n",temp_stream_name);
+               printf("-setting Stream Name to [%s]\n",temp_stream_name);
                break;
            case 'f':
                headless=true;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     my_debug("lis2dw12_getDeviceID()= 0x%02X\n",lis2dw12_getDeviceID());
 
     if( headless ){
-        printf("running in HEADLESS mode\n");
+        printf("-running DEMO mode\n");
 //        monitor_gpios();
 //        do_gpio_blink( 1, 1 );
         command_headless(argc, argv );
@@ -129,7 +129,7 @@ void app_exit(void)
 {
 //    clean-up, free any malloc'd memory, exit
     binario_io_close();
-printf("exiting...\n");
+printf("-exiting...\n");
     exit(EXIT_SUCCESS);
 }
 

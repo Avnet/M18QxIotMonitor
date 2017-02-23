@@ -119,6 +119,8 @@ printf("-Set LED RED\n");
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
         color[strlen(color)-2] = 0x00;
+        set_color("");
+        sleep(1);
         set_color(color);
         do {
             user_key = 0;
@@ -128,9 +130,12 @@ printf("-Set LED RED\n");
             gpio_deinit( &user_key);
             }
         while( cur_val == last_val);
+        printf("-KEYPRESS DETECTED\n");
         last_val = cur_val;
         do_hts2m2x();
+        sleep(2);
         do_adc2m2x();
+        sleep(2);
         k++;
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
             k = 0;
