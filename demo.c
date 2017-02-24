@@ -76,6 +76,8 @@ void set_color( char *color )
         val=RED_LED;
     else if( !strcmp(color, "WHITE") )
         val=WHITE_LED;
+    else
+        val=0;
 printf("-Set LED %s\n",color);
     gpio_write( red_led, (val&RED_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
     gpio_write( green_led, (val&GREEN_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
@@ -118,8 +120,9 @@ printf("-Set LED RED\n");
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
+printf("-FLOW said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
-        set_color("");
+        set_color("OFF");
         sleep(1);
         set_color(color);
         do {
@@ -130,12 +133,12 @@ printf("-Set LED RED\n");
             gpio_deinit( &user_key);
             }
         while( cur_val == last_val);
-        printf("-KEYPRESS DETECTED\n");
-        last_val = cur_val;
+//        last_val = cur_val;
+        printf("-KEYPRESS DETECTED (%d)\n",last_val);
         do_hts2m2x();
-        sleep(2);
+        sleep(1);
         do_adc2m2x();
-        sleep(2);
+        sleep(1);
         k++;
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
             k = 0;

@@ -225,7 +225,7 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
 size_t static write_callback_func(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *response_ptr =  (char*)userp;
-
+printf("-FLOW CALLBACK: %s\n",buffer);
     strncpy(response_ptr, buffer, (size*nmemb));
     return(size * nmemb);
 }
@@ -252,6 +252,8 @@ int http_get(http_info_t *http_req, const char *url, char *response)
 
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
+
+    curl_easy_setopt(http_req->curl, CURLOPT_VERBOSE, 1L);
 
     res = curl_easy_perform(http_req->curl);
     return (res != CURLE_OK) ? -res : 0;
@@ -289,8 +291,10 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
 
     do {
         r=http_get(&get_req, url, response);
-        if (r < 0) 
+        if (r < 0) {
+printf("-FLOW: bad response %d\n",r);
           sleep(30);
+          }
         }
     while( r );
 
