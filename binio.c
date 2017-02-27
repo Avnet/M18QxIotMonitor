@@ -69,8 +69,10 @@ void gpio_timer_task(size_t timer_id, void * user_data)
 
     const time_t t = time(0);
 
-//    printf(">>(%d) Toggle GPIO pin GPIO_PIN_",mytimer[i].timr);
-//    printf("%d/%d, Rate=%d, Value=%d : %s",mytimer[i].nbr,i,mytimer[i].rate,mytimer[i].val,asctime(localtime(&t)));
+    if( dbg_flag & DBG_BINIO ) {
+        printf("-BINIO: (%d) Toggle GPIO pin GPIO_PIN_",mytimer[i].timr);
+        printf("-BINIO: %d/%d, Rate=%d, Value=%d : %s",mytimer[i].nbr,i,mytimer[i].rate,mytimer[i].val,asctime(localtime(&t)));
+        }
     (mytimer[i]).val = !(mytimer[i]).val;  //toggle the value
     gpio_write( (mytimer[i]).hndl, (mytimer[i]).val );
 }
@@ -83,13 +85,16 @@ void do_gpio_blink( int i, int interval )
             delete_IoTtimer(gpios[i].timr);
             gpios[i].timr = create_IoTtimer(interval, gpio_timer_task, TIMER_PERIODIC, (void*)&gpios);
             gpios[i].rate = interval;
-//printf("changed timer GPIO_PIN_%d/%d (%d)\n",gpios[i].nbr,i,gpios[i].timr);
+            if( dbg_flag & DBG_BINIO ) 
+                printf("-BINIO: changed timer GPIO_PIN_%d/%d (%d)\n",gpios[i].nbr,i,gpios[i].timr);
             }
          else {  //want to kill the timer
             delete_IoTtimer(gpios[i].timr);
             stop_IoTtimers();
             gpios[i].timr = gpios[i].rate = gpios[i].val  = 0;
-//printf("stopped timer GPIO_PIN_%d/%d (%d) - [%s]\n", gpios[i].nbr,i,gpios[i].timr, active_IoTtimer()?"RUNNING":"STOPPED");
+            if( dbg_flag & DBG_BINIO ) 
+                printf("-BINIO: stopped timer GPIO_PIN_%d/%d (%d) - [%s]\n", 
+                        gpios[i].nbr,i,gpios[i].timr, active_IoTtimer()?"RUNNING":"STOPPED");
             }
         }
     else { //don't have a timer currently running, start one up
@@ -98,7 +103,9 @@ void do_gpio_blink( int i, int interval )
         gpios[i].rate = interval;
         gpios[i].val  = 1;
         gpio_write( gpios[i].hndl, gpios[i].val );
-//printf("started timer GPIO_PIN_%d/%d (%d) - [%s]\n", gpios[i].nbr,i,gpios[i].timr,active_IoTtimer()?"RUNNING":"STOPPED");
+        if( dbg_flag & DBG_BINIO ) 
+            printf("-BINIO: started timer GPIO_PIN_%d/%d (%d) - [%s]\n", 
+                    gpios[i].nbr,i,gpios[i].timr,active_IoTtimer()?"RUNNING":"STOPPED");
         }
 }
 
@@ -109,10 +116,11 @@ void my_gpio_cb( size_t val )
     if (val != last_val) {
         if( !val ) {
             do_hts2m2x();
-            printf("-detected a SW2 Press\n");
+            if( dbg_flag & DBG_BINIO ) 
+                printf("-BINIO: detected a SW2 Press\n");
             }
-        else
-            printf("-detected a SW2 Release\n");
+        else if( dbg_flag & DBG_BINIO ) 
+            printf("-BINIO: detected a SW2 Release\n");
         last_val=val;
         }
 }
@@ -120,11 +128,12 @@ void my_gpio_cb( size_t val )
 void gpio_input_timer_task(size_t timer_id, void * user_data)
 {
     gpio_deinit( &gpio_input.hndl);
-    my_debug("gpio_init(GPIO_PIN_98)=%d\n",gpio_init( GPIO_PIN_98,  &gpio_input.hndl ));  //SW3
-    my_debug("gpio_dir(GPIO_PIN_98)=%d\n",gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT));
+    gpio_init(GPIO_PIN_98,  &gpio_input.hndl);  //SW3
+    gpio_dir(gpio_input.hndl, GPIO_DIR_INPUT);
 
-    my_debug("timer task read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
-    my_debug("(%d)\n",gpio_input.val);
+    gpio_read(gpio_input.hndl, &gpio_input.val);
+    if( dbg_flag & DBG_BINIO )
+        printf("-BINIO: timer task read (%d)\n",gpio_input.val);
     gpio_input.func(gpio_input.val);
 }
 
@@ -133,12 +142,13 @@ void monitor_gpios( void )
     gpio_input.nbr=4;
     gpio_input.rate=0;
     gpio_input.val=0;
-    printf("-initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
-    printf(": (%d)\n",gpio_input.val);
+    if( dbg_flag & DBG_BINIO )
+        printf("-BINIO: initial read (%d)",gpio_read(gpio_input.hndl, &gpio_input.val));
     gpio_input.func = my_gpio_cb;
 
     start_IoTtimers();
     gpio_input.timr = create_IoTtimer(1, gpio_input_timer_task, TIMER_PERIODIC, NULL);
 }
+
 
 

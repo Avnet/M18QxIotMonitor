@@ -78,6 +78,7 @@ const cmd_entry mon_command_table[] =
   0, "ADC",         "ADC           Read ADC                                                            ",   command_adc,
   0, "I2CPEEK",     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
   0, "I2CPOKE",     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
+  0, "DEBUG",       "DEBUG X V     Set or Clear a debug flag X=set or clr, V = flag to set or clear",       command_dbg,
   0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_wnctest,
   0, "EXIT",        "exit          End Program execution",                                                  command_exit,
   };
@@ -118,6 +119,7 @@ int command_WWANStatus(int, char const* const*);
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
 int command_exit(int, char const* const*);
+int command_dbg(int argc, const char * const * argv );
 
 void do_hts2m2x(void);
 
@@ -188,6 +190,87 @@ void print_banner(void) {
   return ;
 }
 
+//
+// debug set/clr flag
+
+int command_dbg(int argc __attribute__((unused)), const char * const * argv ) 
+{
+    char *action, *flag;
+    int a=0, done=0;
+
+    if( argc == 2 ) {
+        char *action = (char*)argv[1];
+        char *flag   = (char*)argv[2];
+        a |= !strcmp(strupr(action),"SET")?1:0;
+        a |= !strcmp(strupr(action),"CLR")?2:0;
+        }
+    else
+        action = flag = NULL;
+
+    if( a ) {
+        if( !strcmp(strupr(flag),"CURL") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_CURL;
+            else
+                dbg_flag &= ~DBG_CURL;
+            }
+        if( !strcmp(strupr(flag),"FLOW") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_FLOW;
+            else
+                dbg_flag &= ~DBG_FLOW;
+            }
+        if( !strcmp(strupr(flag),"M2X") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_M2X;
+            else
+                dbg_flag &= ~DBG_M2X;
+            }
+        if( !strcmp(strupr(flag),"TIMER") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_MYTIMER;
+            else
+                dbg_flag &= ~DBG_MYTIMER;
+            }
+        if( !strcmp(strupr(flag),"LIS2DW12") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_LIS2DW12;
+            else
+                dbg_flag &= ~DBG_LIS2DW12;
+            }
+        if( !strcmp(strupr(flag),"HTS221") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_HTS221;
+            else
+                dbg_flag &= ~DBG_HTS221;
+            }
+        if( !strcmp(strupr(flag),"BINIO") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_BINIO;
+            else
+                dbg_flag &= ~DBG_BINIO;
+            }
+        }
+    if( !done ) {
+        printf("Possible flags are:(0x%04X)\n",dbg_flag);
+        printf("  CURL - display information about CURL operations\n");
+        printf("  FLOW - display information about CURL operations\n");
+        printf("  M2X - display informatioin about\n");
+        printf("  TIMER - display informatioin about\n");
+        printf("  LIS2DW12 - display informatioin about\n");
+        printf("  HTS221 - display informatioin about\n");
+        printf("  BINIO - display informatioin about\n");
+        }
+    else
+        printf("Debug flag set to: 0x%04X\n",dbg_flag);
+}
 
 int command_iotmon(int argc __attribute__((unused)), const char * const * argv __attribute__((unused))) {
 
@@ -357,9 +440,13 @@ int command_WNCInfo(int, char const* const*)
 
 int command_gpio(int argc __attribute__((unused)), const char * const * argv )
 {
-    int indx   = atoi(&argv[1][9]);
-    int state  = atoi(argv[2]);
+    int indx, state;
     int k=0, done;
+
+    if( argc == 2 ) {
+        indx   = atoi(&argv[1][9]);
+        state  = atoi(argv[2]);
+        }
 
     switch(indx) {
         case 92:  //GPIO_02
@@ -377,8 +464,12 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
                 gpio_write( gpios[k].hndl, (state)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW);
                 break;
                 }
-     default:
-        printf("ERROR: unknown binary i/o GPIO_PIN_%s\n",argv[1][9]);
+        default:
+            printf("ERROR: unknown binary i/o GPIO_PIN_%s\n",argv[1][9]);
+            break;
+
+        case 0:  
+            printf("Invalid command syntax\n");
             break;
      }
 }
@@ -387,10 +478,14 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
 // blink gpio_pin_XXX 1
 int command_blink(int argc __attribute__((unused)), const char * const * argv )
 {
-    int indx = atoi(&argv[1][9]);
-    int rate = atoi(argv[2]);
+    int indx=0, rate=0;
     int k=0, done, state;
     
+    if( argc == 2 ) {
+        indx = atoi(&argv[1][9]);
+        rate = atoi(argv[2]);
+        }
+
     switch(indx) {
         case 92:  //GPIO_02
         case 101:  //GPIO_03
@@ -406,9 +501,11 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
                 do_gpio_blink( k, rate );
                 break;
                 }
-
         default:
             printf("ERROR: unknown binary i/o GPIO_PIN_%s\n",argv[1][9]);
+            break;
+        case 0:
+            printf("Invalid command syntax\n");
             break;
      }
 }
@@ -417,9 +514,16 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
 #define CTOF(x)  ((x)*(float)1.8+32) 
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
-    int repeats = atoi(argv[1])+1;
-    int delay   = atoi(argv[2]);
+    int repeats, delay = 0;
     float temp  = hts221_getTemp();
+
+    if( argc > 1 )
+        delay   = atoi(argv[2]);
+
+    if( argc == 1 )
+        repeats = atoi(argv[1]);
+    else
+        repeats = 1;
 
     do {
         printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
@@ -506,7 +610,7 @@ int command_adc(int argc, const char * const * argv )
 }
 
 
-int command_facttest(int argc, const char * const * argv )
+int command_facttest(int argc __attribute__((unused)), const char * const * argv )
 {
     float temp  = hts221_getTemp();
 

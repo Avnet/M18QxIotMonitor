@@ -53,6 +53,8 @@ void my_putchar(const char *c)
     printf("%s",c);
 }
 
+unsigned int dbg_flag = 0;
+
 int main(int argc, char *argv[]) 
 {
     extern void print_banner(void);
@@ -61,7 +63,7 @@ int main(int argc, char *argv[])
     void app_exit(void);
 
 
-    while((c=getopt(argc,argv,"fd:a:t:l:")) != -1 )
+    while((c=getopt(argc,argv,"fd:a:t:l:v:")) != -1 )
         switch(c) {
            case 'd': //device_id
                device_id = optarg;
@@ -78,6 +80,10 @@ int main(int argc, char *argv[])
            case 't': //temp stream_name
                temp_stream_name = optarg;
                printf("-setting Stream Name to [%s]\n",temp_stream_name);
+               break;
+           case 'v':
+               sscanf(optarg,"%x",&dbg_flag);
+               printf("-debug flag set to 0x%04X\n",dbg_flag);
                break;
            case 'f':
                headless=true;

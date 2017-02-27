@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "iot_monitor.h"
 #include "http.h"
 
 typedef struct _http_info_s {
@@ -43,7 +44,9 @@ static int http_init(http_info_t *http_req, const int is_https)
     	curl_easy_setopt(http_req->curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
     curl_easy_setopt(http_req->curl, CURLOPT_CRLF, 1L);
-//jmf    curl_easy_setopt(http_req->curl, CURLOPT_VERBOSE, 0L);
+
+    if( dbg_flag & DBG_CURL )
+        curl_easy_setopt(http_req->curl, CURLOPT_VERBOSE, 1L);
     return 0;
 }
 
@@ -225,7 +228,8 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
 size_t static write_callback_func(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *response_ptr =  (char*)userp;
-printf("-FLOW CALLBACK: %s\n",buffer);
+    if( dbg_flag & DBG_FLOW )
+        printf("-FLOW: IN CALLBACK: buffer=%s\n",buffer);
     strncpy(response_ptr, buffer, (size*nmemb));
     return(size * nmemb);
 }
@@ -253,8 +257,6 @@ int http_get(http_info_t *http_req, const char *url, char *response)
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
 
-    curl_easy_setopt(http_req->curl, CURLOPT_VERBOSE, 1L);
-
     res = curl_easy_perform(http_req->curl);
     return (res != CURLE_OK) ? -res : 0;
 }
@@ -274,6 +276,10 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
     char tmp_buff1[256];
     char url[256];
 
+    if( dbg_flag & DBG_FLOW )
+        printf("-FLOW: BASE URL: %s\n-FLOW: INPUT NAME: %s\n-FLOW: DEVICE: %s\n-FLOW: COMMAND: %s\n",
+                flow_base_url, flow_input_name, flow_device_name, get_cmd);
+
     memset(response, 0, resp_size);
     memset(&get_req, 0, sizeof(http_info_t));
     memset(tmp_buff1, 0, sizeof(tmp_buff1));
@@ -292,9 +298,10 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
     do {
         r=http_get(&get_req, url, response);
         if (r < 0) {
-printf("-FLOW: bad response %d\n",r);
-          sleep(30);
-          }
+            if( dbg_flag & DBG_FLOW )
+                printf("-FLOW: bad response %d, wait 30- seconds\n",r);
+            sleep(30);
+            }
         }
     while( r );
 

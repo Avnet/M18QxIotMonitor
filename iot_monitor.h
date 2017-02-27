@@ -23,6 +23,14 @@
 #define MAX(a,b)	(((a)>(b))?(a):(b))
 #define MIN(a,b)	(((a)<(b))?(a):(b))
 
+#define DBG_CURL	0x0001
+#define DBG_FLOW	0x0002
+#define DBG_M2X 	0x0004
+#define DBG_MYTIMER	0x0010
+#define DBG_LIS2DW12	0x0020
+#define DBG_HTS221	0x0040
+#define DBG_BINIO	0x0100
+
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")
 
@@ -67,6 +75,7 @@ extern char* strupr(char* s);
 extern const cmd_entry mon_command_table[];
 extern const cmd_entry iot_command_table[];
 extern int headless;
+extern unsigned int dbg_flag;
 
 extern int command_help(int argc, const char * const * argv );
 extern int command_gpio(int argc, const char * const * argv );
@@ -92,6 +101,7 @@ extern int command_gps(int argc, const char * const * argv );
 extern int command_adc(int argc, const char * const * argv );
 extern int command_headless(int argc, const char * const * argv );
 extern int command_facttest(int argc, const char * const * argv );
+extern int command_dbg(int argc, const char * const * argv );
 
 #ifdef __cplusplus
 extern "C" {
