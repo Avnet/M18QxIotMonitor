@@ -266,12 +266,12 @@ static void terminal_print_line (microrl_t * pThis, int pos, int cursor)
 	
 	char nch [] = {0,0};
 	int i;
-//jmf	for (i = pos; i < pThis->cmdlen; i++) {
-//jmf		nch [0] = pThis->cmdline [i];
-//jmf		if (nch[0] == '\0')
-//jmf			nch[0] = ' ';
-//jmf		pThis->print (nch);
-//jmf	}
+	for (i = pos; i < pThis->cmdlen; i++) {
+		nch [0] = pThis->cmdline [i];
+		if (nch[0] == '\0')
+			nch[0] = ' ';
+		pThis->print (nch);
+	}
 	terminal_reset_cursor (pThis);
 	terminal_move_cursor (pThis, cursor);  
 }

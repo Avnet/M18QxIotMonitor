@@ -66,8 +66,8 @@ const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {
-  max_moncommands, ";",           "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
-  0,               ";",           "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",  NULL,
+  max_moncommands, ";",   "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
+  0, ";",           "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",  NULL,
   0, "?",           "?             Displays this help screen",                                              command_help,
   0, "HELP",        "help          Displays this help screen",                                              command_help,
   0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
@@ -80,6 +80,7 @@ const cmd_entry mon_command_table[] =
   0, "I2CPOKE",     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
   0, "DEBUG",       "DEBUG X V     Set or Clear a debug flag X=set or clr, V = flag to set or clear",       command_dbg,
   0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_wnctest,
+  0, "DODEMO",      "dodemo        Run the Demo Program (will not return to monitor)",                      command_demo_mode,
   0, "EXIT",        "exit          End Program execution",                                                  command_exit,
   };
 #define _MAX_MONCOMMANDS	(sizeof(mon_command_table)/sizeof(cmd_entry))
@@ -143,24 +144,23 @@ char * completion_array [MAX(_MAX_MONCOMMANDS,_MAX_IOTCOMMANDS) + 1];   	// arra
 char ** complet (int argc, const char * const * argv)
 {
     int j = 0;
-    long max = (long)current_table->func_p;
-    cmd_entry **tptr = &current_table;
-
+    long max = (long)current_table->max_elements;
+    cmd_entry *tptr = current_table;
     completion_array[0] = NULL;
 
     // if there is token in cmdline
     if (argc == 1) {
         // get last entered token
         char * bit = (char*)argv [argc-1];
-        for (int i = 0; i < max; i++) {                     // iterate through available cmds and match it
-          if (strstr((tptr[i])->commandp, strupr(bit)) == mon_command_table[i].commandp) {   // if token matches 
-            completion_array[j++] = (char*)(tptr[i])->commandp;                 // add it to completion set
+        for (int i = 0; i < max; i++) {                          // iterate through available cmds and match it
+          if (strstr((tptr[i]).commandp, strupr(bit))) {         // if token matches 
+            completion_array[j++] = (char*)(tptr[i]).commandp;   // add it to completion set
             }
         }
       }
   else { // if there is no token in cmdline, just print all available commands
      for (; j < max; j++) {
-       completion_array[j] = (char*)(tptr[j])->commandp;
+       completion_array[j] = (char*)(tptr[j]).commandp;
        }
   }
 
@@ -195,19 +195,19 @@ void print_banner(void) {
 
 int command_dbg(int argc __attribute__((unused)), const char * const * argv ) 
 {
-    char *action, *flag;
+    char *action=NULL, *flag=NULL;
     int a=0, done=0;
 
-    if( argc == 2 ) {
-        char *action = (char*)argv[1];
-        char *flag   = (char*)argv[2];
+    if( argc == 3 ) {
+        action = (char*)argv[1];
+        flag   = (char*)argv[2];
         a |= !strcmp(strupr(action),"SET")?1:0;
+        a |= !strcmp(strupr(action),"1")?1:0;
         a |= !strcmp(strupr(action),"CLR")?2:0;
+        a |= !strcmp(strupr(action),"0")?2:0;
         }
-    else
-        action = flag = NULL;
 
-    if( a ) {
+    if( a && action != NULL && flag != NULL ) {
         if( !strcmp(strupr(flag),"CURL") ) {
             done=1;
             if( a == 1)
@@ -257,6 +257,13 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
             else
                 dbg_flag &= ~DBG_BINIO;
             }
+        if( !strcmp(strupr(flag),"MAL") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_MAL;
+            else
+                dbg_flag &= ~DBG_MAL;
+            }
         }
     if( !done ) {
         printf("Possible flags are:(0x%04X)\n",dbg_flag);
@@ -267,6 +274,7 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
         printf("  LIS2DW12 - display informatioin about\n");
         printf("  HTS221 - display informatioin about\n");
         printf("  BINIO - display informatioin about\n");
+        printf("  MAL -  display information to/from the MAL\n");
         }
     else
         printf("Debug flag set to: 0x%04X\n",dbg_flag);
@@ -603,10 +611,10 @@ int command_adc(int argc, const char * const * argv )
     adc_handle_t my_adc=(adc_handle_t)NULL;
     float val;
 
-    my_debug("adc_init=%d\n",adc_init(&my_adc));
-    my_debug("adc_init=%d\n",adc_read(my_adc, &val));
+    adc_init(&my_adc);
+    adc_read(my_adc, &val);
     printf("       ADC return value: %f\n", val);
-    my_debug("adc_init=%d\n",adc_deinit(&my_adc));
+    adc_deinit(&my_adc);
 }
 
 

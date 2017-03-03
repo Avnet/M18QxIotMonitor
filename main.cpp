@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <termios.h>
 #include <time.h>
 #include <sys/un.h>
 #include <sys/syscall.h>
@@ -47,6 +48,7 @@
 
 sysinfo mySystem;
 int headless=false;
+static struct termios oldt, newt;
 
 void my_putchar(const char *c)
 {
@@ -61,7 +63,14 @@ int main(int argc, char *argv[])
     int process_command (int argc, const char * const * argv);
     int c;
     void app_exit(void);
+#ifdef _USE_COMPLETE
+    char ** complet (int argc, const char * const * argv);
+#endif
 
+    tcgetattr( STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
     while((c=getopt(argc,argv,"fd:a:t:l:v:")) != -1 )
         switch(c) {
@@ -115,7 +124,7 @@ int main(int argc, char *argv[])
         }
     
     print_banner();
-    set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), app_exit, &process_command, NULL, mon_command_table);
+    set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), app_exit, &process_command, complet, mon_command_table);
     new_line_handler(prl);
 
     while(1)
@@ -136,6 +145,7 @@ void app_exit(void)
 //    clean-up, free any malloc'd memory, exit
     binario_io_close();
 printf("-exiting...\n");
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
     exit(EXIT_SUCCESS);
 }
 

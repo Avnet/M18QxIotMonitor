@@ -47,6 +47,7 @@ extern "C" {
 
 #include <json-c/json.h>
 
+#include "iot_monitor.h"
 #include "mal.hpp"
 
 #define JSON_SOCKET_ADDR	"/tmp/cgi-2-sys"
@@ -265,7 +266,8 @@ char *getGPSconfig(json_keyval *kv, int kvsize) {
 
     memset(rstr,0x00,sizeof(rstr));
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
-printf("-get_loc_config returned '%s'\n",rstr);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: get_loc_config returned '%s'\n",rstr);
 //    i = parse_maljson (rstr, kv, kvsize);
 //    return kv[3].value;    
 return NULL;
@@ -279,7 +281,8 @@ char *getGPSlocation(json_keyval *kv, int kvsize) {
 
     memset(rstr,0x00,sizeof(rstr));
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
-printf("-get_loc_position_info returned '%s'\n",rstr);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: get_loc_position_info returned '%s'\n",rstr);
 //    i = parse_maljson (rstr, kv, kvsize);
 //    return kv[3].value;    
 return NULL;
@@ -288,14 +291,16 @@ return NULL;
 
 int enableGPS(void) {
     char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"true\" } }";
-printf("-send '%s'\n",jcmd);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: send '%s'\n",jcmd);
     send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
 
 int disableGPS(void) {
     char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"false\" } }";
-printf("-send '%s'\n",jcmd);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: send '%s'\n",jcmd);
     send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
@@ -303,7 +308,8 @@ printf("-send '%s'\n",jcmd);
 int setGPSmode(int m) {
     char jcmd[100];
     sprintf(jcmd, "{ \"action\": \"set_loc_mode\", \"args\": { \"mode\": %d } }", m);;
-printf("-send '%s'\n",jcmd);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: send '%s'\n",jcmd);
     send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
@@ -311,7 +317,8 @@ printf("-send '%s'\n",jcmd);
 int setGPS_NMEAFilter( int f ) {
     char jcmd[100];
     sprintf(jcmd, "{ \"action\": \"set_loc_nmea_filter\", \"args\": { \"mode\": %d } }", f);;
-printf("-send '%s'\n",jcmd);
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: send '%s'\n",jcmd);
     send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }

@@ -33,14 +33,16 @@ void tx2m2x_timer(size_t timer_id, void * user_data)
 {
     const time_t t = time(0);
     if( hts221_iterations ) {
-        printf("\n-Read HTS221 sensor and send data %d more times (%s)\n",hts221_iterations, asctime(localtime(&t)));
+        if( dbg_flag & DBG_MYTIMER )
+            printf("\n-MYTIMER: Read HTS221 sensor and send data %d more times (%s)\n",hts221_iterations, asctime(localtime(&t)));
         do_hts2m2x();
         --hts221_iterations;
         if( !hts221_iterations )
             sensor_hts221(0,0);
         }
     if( lis2dw12_iterations ) {
-        printf("\n-Read LSW12D2 sensor and send data %d more times (%s)\n",lis2dw12_iterations, asctime(localtime(&t)));
+        if( dbg_flag & DBG_MYTIMER )
+            printf("\n-MYTIMER: Read LSW12D2 sensor and send data %d more times (%s)\n",lis2dw12_iterations, asctime(localtime(&t)));
         do_adc2m2x();
         --lis2dw12_iterations;
         if( !lis2dw12_iterations )
@@ -54,8 +56,8 @@ void do_hts2m2x(void)
     float adc_voltage;
     char str_adc_voltage[16];
     
-    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
-            device_id, api_key, temp_stream_name);
+        if( dbg_flag & DBG_M2X )
+            printf("-M2X: Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n", device_id, api_key, temp_stream_name);
 
     start_data_service();
     m2x_create_stream(device_id, api_key, "humid");
@@ -66,8 +68,9 @@ void do_hts2m2x(void)
     m2x_update_stream_value(device_id, api_key, temp_stream_name, str_adc_voltage);		
 
 
-    printf("-Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
-            device_id, api_key, "humid");
+        if( dbg_flag & DBG_M2X )
+            printf("-M2X: Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                device_id, api_key, "humid");
     adc_voltage = hts221_getHumid()/10;
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
     sprintf(str_adc_voltage, "%f", adc_voltage);
@@ -77,56 +80,64 @@ void do_hts2m2x(void)
 
 void sensor_hts221(int interval, int iterations)
 {
-printf("-sending data %d times, every %d seconds.\n",iterations, interval);
+        if( dbg_flag & DBG_HTS221 )
+            printf("-HTS221: sending data %d times, every %d seconds.\n",iterations, interval);
 
     if( m2x_sensor_timer != 0 ) {  //currently have a timer running
         if( interval ) { //just want to change the rate of samples
             hts221_iterations = iterations;
             delete_IoTtimer(m2x_sensor_timer);
             m2x_sensor_timer = create_IoTtimer(interval, tx2m2x_timer, TIMER_PERIODIC, NULL);
-printf("-changed timer\n");
+        if( dbg_flag & DBG_HTS221 )
+            printf("-HTS221: changed timer\n");
             }
          else {  //want to kill the timer
             hts221_iterations = 0;
             delete_IoTtimer(m2x_sensor_timer);
             stop_IoTtimers();
             m2x_sensor_timer = 0;
-printf("-stopped timer\n");
+        if( dbg_flag & DBG_HTS221 )
+            printf("-HTS221: stopped timer\n");
             }
         }
     else { //don't have a timer currently running, start one up
         hts221_iterations = iterations;
         start_IoTtimers();
         m2x_sensor_timer = create_IoTtimer(interval, tx2m2x_timer, TIMER_PERIODIC, NULL);
-printf("-started timer\n");
+        if( dbg_flag & DBG_HTS221 )
+            printf("-HTS221: started timer\n");
         }
 }
 
 
 void sensor_lis2dw12(int interval, int iterations)
 {
-printf("-sending ADC data %d times, every %d seconds.\n",iterations, interval);
+        if( dbg_flag & DBG_LIS2DW12 )
+            printf("-LIS2DW12: sending ADC data %d times, every %d seconds.\n",iterations, interval);
 
     if( m2x_sensor_timer != 0 ) {  //currently have a timer running
         if( interval ) { //just want to change the rate of samples
             lis2dw12_iterations = iterations;
             delete_IoTtimer(m2x_sensor_timer);
             m2x_sensor_timer = create_IoTtimer(interval, tx2m2x_timer, TIMER_PERIODIC, NULL);
-printf("-changed timer\n");
+        if( dbg_flag & DBG_LIS2DW12 )
+            printf("-LIS2DW12: changed timer\n");
             }
          else {  //want to kill the timer
             lis2dw12_iterations = 0;
             delete_IoTtimer(m2x_sensor_timer);
             stop_IoTtimers();
             m2x_sensor_timer = 0;
-printf("-stopped timer\n");
+        if( dbg_flag & DBG_LIS2DW12 )
+            printf("-LIS2DW12: stopped timer\n");
             }
         }
     else { //don't have a timer currently running, start one up
         lis2dw12_iterations = iterations;
         start_IoTtimers();
         m2x_sensor_timer = create_IoTtimer(interval, tx2m2x_timer, TIMER_PERIODIC, NULL);
-printf("-started timer\n");
+        if( dbg_flag & DBG_LIS2DW12 )
+            printf("-LIS2DW12: started timer\n");
         }
 }
 
@@ -136,7 +147,8 @@ void do_adc2m2x(void)
     float adc_voltage;
     char str_adc_voltage[16];
     
-    printf("-Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+        if( dbg_flag & DBG_M2X )
+                printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
             device_id, api_key, adc_stream_name);
 
     start_data_service();

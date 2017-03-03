@@ -38,17 +38,17 @@ Autor: Eugene Samoylov aka Helius (ghelius@gmail.com)
 // now if user press TAB calls 'copmlitetion' callback. If you no need it, you can just set 
 // NULL to callback ptr and do not use it, but for memory saving tune, 
 // if you are not going to use it - disable this define.*/
-//#define _USE_COMPLETE
+#define _USE_COMPLETE
 
 // /*
 // Enable Handling terminal ESC sequence. If disabling, then cursor arrow, HOME, END will not work,
 // use Ctrl+A(B,F,P,N,A,E,H,K,U,C) see README, but decrease code memory.*/
-//#define _USE_ESC_SEQ
+#define _USE_ESC_SEQ
 
 // /*Define it, if you wanna use history. It s work's like bash history, and
 // set stored value to cmdline, if UP and DOWN key pressed. Using history add
 // memory consuming, depends from _RING_HISTORY_LEN parametr */
-//#define _USE_HISTORY
+#define _USE_HISTORY
 
 // /*
 // History ring buffer length, define static buffer size.
@@ -56,7 +56,7 @@ Autor: Eugene Samoylov aka Helius (ghelius@gmail.com)
 // so we can not say, how many line we can store, it depends from cmdline len,
 // but memory using more effective. We not prefer dinamic memory allocation for
 // small and embedded devices. Overhead is 2 char on each saved line*/
-//#define _RING_HISTORY_LEN 64
+#define _RING_HISTORY_LEN 64
 
 // /*
 // Use snprintf from you standard complier library, but it gives some overhead.

@@ -79,7 +79,7 @@ void set_color( char *color )
         val=WHITE_LED;
     else
         val=0;
-printf("-Set LED %s\n",color);
+    printf("-DEMO: Set LED %s\n",color);
     gpio_write( red_led, (val&RED_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
     gpio_write( green_led, (val&GREEN_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
     gpio_write( blue_led, (val&BLUE_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
@@ -92,7 +92,7 @@ static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 	if (pin_name != GPIO_PIN_98)
 		return 0;
         cur_val = !cur_val;
-printf("GPIO interrupt detected (%d/%d)\n",cur_val,last_val);
+        printf("-DEMO: GPIO interrupt detected (%d/%d)\n",cur_val,last_val);
 	return 0;
 }
 
@@ -116,12 +116,12 @@ int command_demo_mode(int argc, const char * const * argv )
 
     gpio_init( GPIO_PIN_98,  &user_key );  //SW3
     gpio_dir(user_key, GPIO_DIR_INPUT);
-    gpio_read(user_key, &last_val);
+    gpio_read(user_key, (gpio_level_t *)&last_val);
     gpio_irq_request(user_key, GPIO_IRQ_TRIG_FALLING, gpio_irq_callback);
     cur_val = last_val;
 
     start_data_service();
-printf("-Set LED RED\n");
+    printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
     gpio_write( red_led, GPIO_LEVEL_HIGH);
 
@@ -131,14 +131,14 @@ printf("-Set LED RED\n");
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
-        printf("-FLOW said: %s\n",resp);
+        printf("-Demo: flow said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
         set_color("OFF");
         sleep(1);
         set_color(color);
         while( cur_val == last_val ); /* wait */
         last_val = cur_val;
-        printf("-KEYPRESS DETECTED (%d)\n",last_val);
+        printf("-DEMO: KEYPRESS DETECTED (%d)\n",last_val);
         do_hts2m2x();
         sleep(1);
         do_adc2m2x();
