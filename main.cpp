@@ -117,10 +117,7 @@ int main(int argc, char *argv[])
 
     if( headless ){
         printf("-running DEMO mode\n");
-//        monitor_gpios();
-//        do_gpio_blink( 1, 1 );
         command_headless(argc, argv );
-//        exit(0);
         }
     
     print_banner();
@@ -144,7 +141,8 @@ void app_exit(void)
 {
 //    clean-up, free any malloc'd memory, exit
     binario_io_close();
-printf("-exiting...\n");
+    printf("-exiting...\n");
+
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
     exit(EXIT_SUCCESS);
 }

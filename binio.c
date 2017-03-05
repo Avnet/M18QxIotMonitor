@@ -48,7 +48,6 @@ void binario_io_close(void)
     gpio_deinit( &gpios[0].hndl);
     gpio_deinit( &gpios[1].hndl);
     gpio_deinit( &gpios[2].hndl);
-    gpio_deinit( &gpios[3].hndl);
     gpio_deinit( &gpio_input.hndl);
 }
 

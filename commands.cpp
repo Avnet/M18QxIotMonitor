@@ -73,7 +73,7 @@ const cmd_entry mon_command_table[] =
   0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
   0, "GPIO",        "gpion # #     Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
   0, "BLINK",       "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",command_blink, 
-  0, "HTS221",      "HTS221        Display information about the HTS221 sensor.",                           command_hts221,
+  0, "HTS221",      "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
   0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
   0, "ADC",         "ADC           Read ADC                                                            ",   command_adc,
   0, "I2CPEEK",     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
@@ -451,7 +451,7 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
     int indx, state;
     int k=0, done;
 
-    if( argc == 2 ) {
+    if( argc == 3 ) {
         indx   = atoi(&argv[1][9]);
         state  = atoi(argv[2]);
         }
@@ -489,7 +489,7 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     int indx=0, rate=0;
     int k=0, done, state;
     
-    if( argc == 2 ) {
+    if( argc == 3 ) {
         indx = atoi(&argv[1][9]);
         rate = atoi(argv[2]);
         }
@@ -523,17 +523,20 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
     int repeats, delay = 0;
-    float temp  = hts221_getTemp();
+    float temp;
 
-    if( argc > 1 )
+    if( argc == 3 ) {
         delay   = atoi(argv[2]);
-
-    if( argc == 1 )
+        repeats = atoi(argv[1]);
+        }
+    else if( argc == 2 )
         repeats = atoi(argv[1]);
     else
         repeats = 1;
 
+    printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
     do {
+        temp  = hts221_getTemp();
         printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
         printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
         printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
@@ -651,13 +654,25 @@ int command_facttest(int argc __attribute__((unused)), const char * const * argv
 //  tx2m2x Y X Z  Tx data Y times every X secs from device Z
 int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
 {
-    char*  sensor    = (char*)argv[3]; 
-    int    i, interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
-    int    iterations  = (unsigned char)atoi(argv[1]);   //nbr of times to send data
+    char*  sensor=NULL;
+    int    i, interval;
+    int    iterations;
 
-    for (i=0; i<_max_m2xfunctions; i++) {
-        if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
-            (m2xfunctions[i]).func(interval, iterations);
+    if( argc == 4 ) {
+        sensor    = (char*)argv[3]; 
+        interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
+        iterations  = (unsigned char)atoi(argv[1]);   //nbr of times to send data
+        }
+    if( sensor != NULL ) {
+        for (i=0; i<_max_m2xfunctions; i++) {
+            if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
+                (m2xfunctions[i]).func(interval, iterations);
+            }
+        }
+    else {
+        printf("Need to specify a sensor, one of:\n");
+        for (i=0; i<_max_m2xfunctions-1; i++) 
+            printf(" - %s\n",(m2xfunctions[i]).name);
         }
 }
 

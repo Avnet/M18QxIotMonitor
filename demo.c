@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
+#include <time.h>
 
 #include "iot_monitor.h"
 #include "binio.h"
@@ -46,7 +47,9 @@ typedef struct led_val_t {
 #define FLOW_SERVER      "run-east.att.io"
 
 static gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
-static volatile gpio_level_t cur_val=0, last_val=0;
+static volatile gpio_level_t button_press=0, last_val=0;
+struct timespec key_press, key_release, keypress_time;
+
 
 LED_VAL led_demo[] = {
     HGREEN_LED,
@@ -89,10 +92,28 @@ void set_color( char *color )
 
 static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
+    gpio_level_t the_val=0;
+    
 	if (pin_name != GPIO_PIN_98)
 		return 0;
-        cur_val = !cur_val;
-        printf("-DEMO: GPIO interrupt detected (%d/%d)\n",cur_val,last_val);
+
+        if( !button_press ) {
+            button_press = 1;
+            clock_gettime(CLOCK_MONOTONIC, &key_press);
+            printf("-DEMO: KEY PRESS detected\n");
+            }
+        else {
+            button_press = 0;
+            clock_gettime(CLOCK_MONOTONIC, &key_release);
+            if ((key_release.tv_nsec-key_press.tv_nsec)<0) {
+		keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec-1;
+	        } 
+            else {
+		keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec;
+	        }
+            printf("-DEMO: KEY RELEASE detected, pressed for %ld secs\n",(keypress_time.tv_sec));
+            }
+
 	return 0;
 }
 
@@ -102,7 +123,14 @@ int command_demo_mode(int argc, const char * const * argv )
     int start_data_service(void);
     char cmd[256], resp[256];
     char color[10];
-    int  k=0;
+    int  done=0, k=0;
+
+    printf("-Demo: Starting Demo Mode.\n");
+    printf("The LED will be read while establishing a connection to FLOW\n");
+    printf("It will turn GREEN once connected.  After that pressing the\n");
+    printf("USER button will cause the program to send 2 messages to M2X\n");
+    printf("and 1 message to FLOW.  If you hold the button down for >3 \n");
+    printf("seconds, it will exit demo mode and re-enter the monitor.\n\nconnecting...\n");
 
     binario_io_close();
 
@@ -116,16 +144,15 @@ int command_demo_mode(int argc, const char * const * argv )
 
     gpio_init( GPIO_PIN_98,  &user_key );  //SW3
     gpio_dir(user_key, GPIO_DIR_INPUT);
-    gpio_read(user_key, (gpio_level_t *)&last_val);
-    gpio_irq_request(user_key, GPIO_IRQ_TRIG_FALLING, gpio_irq_callback);
-    cur_val = last_val;
+    gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
+    button_press = 0;
 
     start_data_service();
     printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
     gpio_write( red_led, GPIO_LEVEL_HIGH);
 
-    while( 1 ) {
+    while( headless || !done ) {
         memset(cmd, 0x00, sizeof(cmd));
         sprintf(cmd,"&temp=%4.2f&humidity=%4.2f&accelX=0.0&accelY=%3.1f&accelZ=%3.1f", 
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
@@ -136,17 +163,27 @@ int command_demo_mode(int argc, const char * const * argv )
         set_color("OFF");
         sleep(1);
         set_color(color);
-        while( cur_val == last_val ); /* wait */
-        last_val = cur_val;
-        printf("-DEMO: KEYPRESS DETECTED (%d)\n",last_val);
+
+        while( !button_press ); /* wait for a button press */
+        printf("-DEMO: HTS221 data to M2X\n");
         do_hts2m2x();
-        sleep(1);
+        printf("\n-DEMO: A2D data to M2X\n");
         do_adc2m2x();
-        sleep(1);
         k++;
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
             k = 0;
+        while( button_press ); /* wait for the user to release the button */
+        if( keypress_time.tv_sec > 3 )
+            done = 1;
         }
+
+    gpio_deinit( &red_led);
+    gpio_deinit( &green_led);
+    gpio_deinit( &blue_led);
+    gpio_deinit( &user_key);
+
+    printf("Restarting the Monitor...\n");
+    binary_io_init();
 }
 
 
