@@ -310,3 +310,39 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
 
 }
 
+//
+// This function is called to update a LED COLOR value.
+//
+//curl -i -X PUT http://api-m2x.att.com/v2/devices/2ac9dc89132469eb809bea6e3a95d675/streams/rgb/value 
+//     -H "X-M2X-KEY: 6cd9c60f4a4e5d91d0ec4cc79536c661" 
+//     -H "Content-Type: application/json" 
+//     -d "{ \"value\": \"WHITE\" }"
+
+int m2x_update_color_value ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr, const char *stream_value_ptr)
+{
+    http_info_t put_req;
+    char tmp_buff1[256], tmp_buff2[256], tmp_buff3[64];;
+    char url[256];
+
+    memset(&put_req, 0, sizeof(http_info_t));
+    memset(tmp_buff1, 0, sizeof(tmp_buff1));
+    memset(tmp_buff2, 0, sizeof(tmp_buff2));
+    memset(url, 0, sizeof(url));
+
+    http_init(&put_req, 0);
+
+    sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s/value", device_id_ptr, stream_name_ptr);
+    sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+    sprintf(tmp_buff2, "{ \"value\": \"%s\" }", stream_value_ptr);
+
+    put_req.header = http_add_field(put_req.header, "Content-Type: application/json");
+    put_req.header = http_add_field(put_req.header, tmp_buff1);
+    put_req.data_field = http_add_field(put_req.data_field, tmp_buff2);
+
+    if (http_put(&put_req, url) < 0)
+	return -1;
+
+    http_deinit(&put_req);
+    return 0;
+}
+

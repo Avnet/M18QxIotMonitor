@@ -165,3 +165,21 @@ void do_adc2m2x(void)
     printf("\n");
 }
 
+//
+// curl -i -X PUT http://api-m2x.att.com/v2/devices/2ac9dc89132469eb809bea6e3a95d675/streaX-KEY: 6cd9c60f4a4e5d91d0ec4cc79536c661" -H "Content-Type: application/json" -d "{ \"value\": \"RED\" }"
+//
+void set_m2xColor(char *color)
+{
+    
+    if( dbg_flag & DBG_M2X )
+        printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                device_id, api_key, "rgb");
+
+    start_data_service();
+    m2x_create_stream(device_id, api_key, "rgb");
+
+    m2x_update_color_value (device_id, api_key, "rgb", color);		
+
+    printf("\n");
+}
+

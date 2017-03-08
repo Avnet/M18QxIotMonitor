@@ -33,12 +33,12 @@ typedef struct led_val_t {
 
 #define HGREEN_LED      {80.0, 80.0, 0.6, 0.6} 
 #define HMAGENTA_LED    {80.0, 80.0, 0.7, 0.4} 
-#define HBLUE_LED       {80.0, 80.0, 0.3, 0.8} 
+#define HYELLOW_LED     {80.0, 80.0, 0.3, 0.8} 
 #define HTURQUOISE_LED  {80.0, 80.0, 0.2, 0.2} 
 
 #define LRED_LED        {1.0, 1.0, 0.6, 0.6} 
 #define LWHITE_LED      {1.0, 1.0, 0.7, 0.4} 
-#define LGREEN_LED      {1.0, 1.0, 0.3, 0.8} 
+#define LCYAN_LED       {1.0, 1.0, 0.3, 0.8} 
 #define LBLUE_LED       {1.0, 1.0, 0.2, 0.2} 
 
 #define FLOW_BASE_URL    "https://runm-east.att.io/cfb0a90848c28/eb2514c29597/c94b14f417ae42a/in/flow"
@@ -54,12 +54,12 @@ struct timespec key_press, key_release, keypress_time;
 LED_VAL led_demo[] = {
     HGREEN_LED,
     HMAGENTA_LED,
-    HBLUE_LED,
+    HYELLOW_LED,
     HTURQUOISE_LED,
     LWHITE_LED,
     LRED_LED,
     LBLUE_LED,
-    LGREEN_LED,
+    LCYAN_LED,
 };
 
 void set_color( char *color )
@@ -80,6 +80,10 @@ void set_color( char *color )
         val=RED_LED;
     else if( !strcmp(color, "WHITE") )
         val=WHITE_LED;
+    else if( !strcmp(color, "YELLOW") )
+        val=YELLOW_LED;
+    else if( !strcmp(color, "CYAN") )
+        val=CYAN_LED;
     else
         val=0;
     printf("-DEMO: Set LED %s\n",color);
@@ -121,6 +125,7 @@ static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
+    void set_m2xColor( char *);
     char cmd[256], resp[256];
     char color[10];
     int  done=0, k=0;
@@ -161,7 +166,7 @@ int command_demo_mode(int argc, const char * const * argv )
         printf("-Demo: flow said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
         set_color("OFF");
-        sleep(1);
+        set_m2xColor(color);
         set_color(color);
 
         while( !button_press ); /* wait for a button press */
