@@ -31,6 +31,7 @@
 #define DBG_HTS221	0x0040
 #define DBG_BINIO	0x0100
 #define DBG_MAL         0x0200
+#define DBG_DEMO	0x0400
 
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")

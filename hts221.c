@@ -17,7 +17,7 @@
 #include "hts221.h"
 
 //local caches
-static i2c_handle_t my_i2c = 0;
+i2c_handle_t my_i2c = 0;
 
 uint8_t reg_cache_T0_degC_x8 = 0;
 uint8_t reg_cache_T1_degC_x8 = 0;

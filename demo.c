@@ -46,8 +46,8 @@ typedef struct led_val_t {
 #define FLOW_DEVICE_NAME "vstarterkit001"
 #define FLOW_SERVER      "run-east.att.io"
 
-static gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
-static volatile gpio_level_t button_press=0, last_val=0;
+gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
+volatile gpio_level_t button_press=0, last_val=0;
 struct timespec key_press, key_release, keypress_time;
 
 
@@ -82,7 +82,8 @@ void set_color( char *color )
         val=WHITE_LED;
     else
         val=0;
-    printf("-DEMO: Set LED %s\n",color);
+    if( dbg_flag & DBG_DEMO )
+        printf("-DEMO: Set LED %s\n",color);
     gpio_write( red_led, (val&RED_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
     gpio_write( green_led, (val&GREEN_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
     gpio_write( blue_led, (val&BLUE_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
@@ -90,7 +91,7 @@ void set_color( char *color )
 }
 
 
-static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
+int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     gpio_level_t the_val=0;
     
@@ -100,7 +101,8 @@ static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
         if( !button_press ) {
             button_press = 1;
             clock_gettime(CLOCK_MONOTONIC, &key_press);
-            printf("-DEMO: KEY PRESS detected\n");
+            if( dbg_flag & DBG_DEMO )
+                printf("-DEMO: KEY PRESS detected\n");
             }
         else {
             button_press = 0;
@@ -111,7 +113,8 @@ static int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
             else {
 		keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec;
 	        }
-            printf("-DEMO: KEY RELEASE detected, pressed for %ld secs\n",(keypress_time.tv_sec));
+            if( dbg_flag & DBG_DEMO )
+                printf("-DEMO: KEY RELEASE detected, pressed for %ld secs\n",(keypress_time.tv_sec));
             }
 
 	return 0;
@@ -125,7 +128,8 @@ int command_demo_mode(int argc, const char * const * argv )
     char color[10];
     int  done=0, k=0;
 
-    printf("-Demo: Starting Demo Mode.\n");
+    if (dbg_flag & DBG_DEMO)
+        printf("-Demo: Starting Demo Mode.\n");
     printf("The LED will be read while establishing a connection to FLOW\n");
     printf("It will turn GREEN once connected.  After that pressing the\n");
     printf("USER button will cause the program to send 2 messages to M2X\n");
@@ -148,7 +152,8 @@ int command_demo_mode(int argc, const char * const * argv )
     button_press = 0;
 
     start_data_service();
-    printf("-Demo: Set LED RED\n");
+    if (dbg_flag & DBG_DEMO)
+        printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
     gpio_write( red_led, GPIO_LEVEL_HIGH);
 
@@ -158,16 +163,19 @@ int command_demo_mode(int argc, const char * const * argv )
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
-        printf("-Demo: flow said: %s\n",resp);
+        if (dbg_flag & DBG_DEMO)
+            printf("-Demo: flow said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
         set_color("OFF");
         sleep(1);
         set_color(color);
 
         while( !button_press ); /* wait for a button press */
-        printf("-DEMO: HTS221 data to M2X\n");
+        if (dbg_flag & DBG_DEMO)
+            printf("-DEMO: HTS221 data to M2X\n");
         do_hts2m2x();
-        printf("\n-DEMO: A2D data to M2X\n");
+        if (dbg_flag & DBG_DEMO)
+            printf("\n-DEMO: A2D data to M2X\n");
         do_adc2m2x();
         k++;
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
@@ -182,7 +190,8 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_deinit( &blue_led);
     gpio_deinit( &user_key);
 
-    printf("Restarting the Monitor...\n");
+    if (dbg_flag & DBG_DEMO)
+        printf("Restarting the Monitor...\n");
     binary_io_init();
 }
 

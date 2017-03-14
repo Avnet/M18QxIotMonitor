@@ -32,6 +32,15 @@ extern "C" {
 
 #include "mal.hpp"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction);
+void set_color(char *);
+#ifdef __cplusplus
+}
+#endif
+
 #define my_getc()	getc()
 #define my_puts(s)	puts(s)
 #define my_putc(c)	putchar(c)
@@ -551,15 +560,19 @@ int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv 
   unsigned char buf[100];                 //use a 100 byte working buffer
   char    reg, dev;
   int     i;
+extern i2c_handle_t my_i2c;
 
   memset(buf,0x00,sizeof(buf));
   sscanf(argv[2],"%x",(int)&reg);
   sscanf(argv[1],"%x",(int)&dev);
 
-  if( dev == 0x19 )
-    lis2dw12_read(reg, buf, nbr);
-  else
-    hts221_read(reg, buf, nbr);
+//  if( dev == 0x19 )
+//    lis2dw12_read(reg, buf, nbr);
+//  else
+//    hts221_read(reg, buf, nbr);
+
+  i2c_write(my_i2c, dev, (unsigned char*)&reg, 1, I2C_NO_STOP);
+  i2c_read (my_i2c, dev, buf, nbr);
 
   for (i=0; i<nbr; i+=8) 
     printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
@@ -623,6 +636,11 @@ int command_adc(int argc, const char * const * argv )
 
 int command_facttest(int argc __attribute__((unused)), const char * const * argv )
 {
+    extern struct timespec key_press, key_release, keypress_time;
+    extern volatile gpio_level_t button_press;
+    extern GPIOPIN_IN gpio_input;
+    extern gpio_handle_t user_key, red_led, green_led, blue_led;
+
     float temp  = hts221_getTemp();
 
 //Test: Display WNC part info and SIM card info
@@ -640,7 +658,67 @@ int command_facttest(int argc __attribute__((unused)), const char * const * argv
     printf("       HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
     printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
     printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
+
+//Test: Read ID register from LIS2DW12
+    printf("     LIS2DW12 Device id: 0x%02X\n\n", lis2dw12_getDeviceID());
+
 //Test: User Push-Button/LED test
+    binario_io_close();
+    gpio_init( GPIO_PIN_92,  &red_led );
+    gpio_init( GPIO_PIN_101, &green_led );
+    gpio_init( GPIO_PIN_102, &blue_led );
+    gpio_init( GPIO_PIN_98,  &user_key );  //SW3
+
+    gpio_dir(red_led,   GPIO_DIR_OUTPUT);
+    gpio_dir(green_led, GPIO_DIR_OUTPUT);
+    gpio_dir(blue_led,  GPIO_DIR_OUTPUT);
+    
+    button_press = (gpio_level_t)0;
+    gpio_dir(user_key, GPIO_DIR_INPUT);
+    gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
+
+    set_color((char*)"OFF");
+    printf("Press user button to being...\n");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+
+    printf(" Press user button to cycle through all colors:\n");
+    set_color((char*)"BLUE");
+    printf(" Color set to BLUE\n");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now GREEN\n", keypress_time.tv_sec);
+    set_color((char*)"GREEN");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now BLUE\n", keypress_time.tv_sec);
+    set_color((char*)"BLUE");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now MAGENTA\n", keypress_time.tv_sec);
+    set_color((char*)"MAGENTA");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now TURQUOISE\n", keypress_time.tv_sec);
+    set_color((char*)"TURQUOISE");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now RED\n", keypress_time.tv_sec);
+    set_color((char*)"RED");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now WHITE\n", keypress_time.tv_sec);
+    set_color((char*)"WHITE");
+    while( !button_press ); /* wait for a button press */
+    while( button_press ); /* wait for the user to release the button */
+    printf( "Button pressed for %d seconds. Now OFF\n", keypress_time.tv_sec);
+    set_color((char*)"OFF");
+    gpio_deinit( &red_led);
+    gpio_deinit( &green_led);
+    gpio_deinit( &blue_led);
+    gpio_deinit( &user_key);
+
+    binary_io_init();
 
 //
 // The following tests are TBD at this time.
