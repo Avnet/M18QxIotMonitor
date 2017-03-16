@@ -24,7 +24,7 @@ AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw
 iot_monitor_SOURCES = main.cpp microrl.cpp MyBuffer.cpp \
                       commands.cpp mal.cpp maljson.cpp \
                       binio.c jsmn.c  hts221.c mytimer.c \
-                      http.c lis2dw12.c m2x.c demo.c
+                      http.c lis2dw12.c m2x.c demo.c wwan.c
 
 bin_PROGRAMS = iot_monitor
 
