@@ -117,6 +117,7 @@ int lis2dw12_common_resume(struct lis2dw12_data *cdata);
 #endif /* CONFIG_PM */
 #endif //jmf
 
+#define LIS2DW12_SAD			0x19
 #define LIS2DW12_WHO_AM_I_ADDR		0x0f
 #define LIS2DW12_WHO_AM_I_DEF		0x44
 

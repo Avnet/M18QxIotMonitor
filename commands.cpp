@@ -37,6 +37,7 @@ extern "C" {
 #endif
 int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction);
 void set_color(char *);
+void wwan_io(int);
 #ifdef __cplusplus
 }
 #endif
@@ -102,6 +103,7 @@ const cmd_entry fac_command_table[] =
   0, "HELP",        "help          Displays this help screen",                 command_help,
   0, "WNCINFO",     "wncinfo       Displays the WNC module information",       command_WNCInfo, 
   0, "WWANSTAT",    "wwanstat      Displays the WWAN status information",      command_WWANStatus,
+  0, "WWAN_LED",    "wwan_led 0/1  Disable/Enable the WWAN LED",               command_WWANLED,
   0, "TX2M2X",      "tx2m2x Y X Z  Tx data Y times every X secs from device Z",command_tx2m2x, 
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
   0, "EXIT",        "exit          End Program execution",                     command_exit,
@@ -126,6 +128,7 @@ int command_wnctest(int argc, const char * const * argv );
 int command_tx2m2x(int argc, const char * const * argv );
 int command_WNCInfo(int argc, const char * const * argv );
 int command_WWANStatus(int, char const* const*);
+int command_WWANLED(int, char const* const*);
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
 int command_exit(int, char const* const*);
@@ -554,31 +557,32 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     while (--repeats);
 }
 
-int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv )
+//dev reg nbr_of_bytes
+int command_i2cpeek(int argc, const char * const * argv )
 {
-  unsigned char nbr  = (unsigned char)atoi(argv[3]);  //get number of bytes to read
+  extern i2c_handle_t my_i2c;
+  unsigned char nbr = 0x00;
   unsigned char buf[100];                 //use a 100 byte working buffer
   char    reg, dev;
   int     i;
-extern i2c_handle_t my_i2c;
 
-  memset(buf,0x00,sizeof(buf));
-  sscanf(argv[2],"%x",(int)&reg);
-  sscanf(argv[1],"%x",(int)&dev);
+    if( argc == 4 ) {
+        memset(buf,0x00,sizeof(buf));
+        nbr = (unsigned char) atoi(argv[3]); //number of bytes to read
+        sscanf(argv[2],"%x",(int)&reg);      //register to read from
+        sscanf(argv[1],"%x",(int)&dev);      //device ID
 
-//  if( dev == 0x19 )
-//    lis2dw12_read(reg, buf, nbr);
-//  else
-//    hts221_read(reg, buf, nbr);
+        i2c_write(my_i2c, dev, (unsigned char*)&reg, 1, I2C_NO_STOP);
+        i2c_read (my_i2c, dev, buf, nbr);
 
-  i2c_write(my_i2c, dev, (unsigned char*)&reg, 1, I2C_NO_STOP);
-  i2c_read (my_i2c, dev, buf, nbr);
-
-  for (i=0; i<nbr; i+=8) 
-    printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
-               reg,buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],
-               buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7]);
-  return 2;
+        for (i=0; i<nbr; i+=8) 
+            printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
+                     reg,buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],
+                     buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7]);
+        }
+    else
+        printf("ERROR: argc=%d\n",argc);
+  return 1;
 }
 
 int command_i2cpoke(int, char const* const*)
@@ -753,4 +757,17 @@ int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
             printf(" - %s\n",(m2xfunctions[i]).name);
         }
 }
+
+int command_WWANLED(int argc __attribute__((unused)), const char * const * argv )
+{
+
+    int enable=-1;
+
+    if( argc == 2 ) 
+        enable = atoi(argv[1]);
+
+    if( enable>=0 )
+        wwan_io(enable);
+}
+
 

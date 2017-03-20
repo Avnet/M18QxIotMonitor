@@ -96,6 +96,7 @@ extern int command_iotmon(int argc, const char * const * argv );
 extern int command_wnctest(int argc, const char * const * argv );
 extern int command_iothelp(int argc, const char * const * argv );
 extern int command_WWANStatus(int, char const* const*);
+extern int command_WWANLED(int, char const* const*);
 extern int command_WNCInfo(int argc, const char * const * argv );
 extern int command_tx2m2x(int argc, const char * const * argv );
 extern int command_exit(int argc, const char * const * argv );

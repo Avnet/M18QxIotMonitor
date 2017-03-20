@@ -14,9 +14,7 @@ void wwan_io(int onoff) {
 
     fd = open("/sys/class/leds/wwan/brightness", O_WRONLY);
 
-    sprintf(buf, "echo %d > /sys/class/leds/wwan/brightness",onoff);
-
-    write(fd, buf, strlen(buf));
+    write(fd, onoff?"1":"0", 1);
 
     close(fd);
 }
