@@ -17,7 +17,6 @@
 #include "hts221.h"
 
 //local caches
-i2c_handle_t my_i2c = 0;
 
 uint8_t reg_cache_T0_degC_x8 = 0;
 uint8_t reg_cache_T1_degC_x8 = 0;
@@ -28,34 +27,46 @@ uint8_t reg_cache_T1_OUT_L = 0;
 uint8_t reg_cache_T1_OUT_H = 0;
 
 void hts221_read(uint8_t reg_addr, uint8_t *buf, int nbr) {
+    i2c_handle_t my_handle = 0;
     uint16_t val;
     
-    i2c_write(my_i2c, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
-    i2c_read(my_i2c, HTS221_SAD, buf, nbr);
+    i2c_bus_init(I2C_BUS_I, &my_handle);
+    i2c_write(my_handle, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
+    i2c_read(my_handle, HTS221_SAD, buf, nbr);
+    i2c_bus_deinit(&my_handle);
 }
 
 uint16_t hts221_read_word(uint8_t reg_addr) {
+    i2c_handle_t my_handle = 0;
     uint16_t val;
     
-    i2c_write(my_i2c, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
-    i2c_read(my_i2c, HTS221_SAD, (uint8_t*)&val, 2);
+    i2c_bus_init(I2C_BUS_I, &my_handle);
+    i2c_write(my_handle, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
+    i2c_read(my_handle, HTS221_SAD, (uint8_t*)&val, 2);
+    i2c_bus_deinit(&my_handle);
     return val;
 }
 
 uint8_t hts221_read_byte(uint8_t reg_addr) {
+    i2c_handle_t my_handle = 0;
     uint8_t value_read;
 
-    i2c_write(my_i2c, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
-    i2c_read(my_i2c, HTS221_SAD, &value_read, 1);
+    i2c_bus_init(I2C_BUS_I, &my_handle);
+    i2c_write(my_handle, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
+    i2c_read(my_handle, HTS221_SAD, &value_read, 1);
+    i2c_bus_deinit(&my_handle);
     return value_read;
 }
 
 void hts221_write_reg(uint8_t reg_addr, uint8_t value) {
-	uint8_t buffer_sent[2];
+    i2c_handle_t my_handle = 0;
+    uint8_t buffer_sent[2];
 
-	buffer_sent[0] = reg_addr;
-	buffer_sent[1] = value;
-	i2c_write(my_i2c, HTS221_SAD, buffer_sent, 2, I2C_STOP);
+    buffer_sent[0] = reg_addr;
+    buffer_sent[1] = value;
+    i2c_bus_init(I2C_BUS_I, &my_handle);
+    i2c_write(my_handle, HTS221_SAD, buffer_sent, 2, I2C_STOP);
+    i2c_bus_deinit(&my_handle);
 }
 
 
@@ -104,28 +115,25 @@ float hts221_getTemp(void) {
 }
 
 int hts221_initialize(void) {
-	if (i2c_bus_init(I2C_BUS_I, &my_i2c) != 0) {
-	    fprintf(stderr,"fail to initialize I2C peripheral !!\n");
-	    return (-1);
-	    }
-	if (hts221_getDeviceID() != HTS221_DEVICE_ID)
-		return (-2);
+
+    if (hts221_getDeviceID() != HTS221_DEVICE_ID)
+	return (-2);
 	
-	//initialize other registers.
-	hts221_write_reg(HTS221_REG_CTRL_REG1, 0x85);	//power active, block data update until MSB LSB all ready, 1Hz report
-	hts221_write_reg(HTS221_REG_CTRL_REG2, 0x00);	//normal boot, heater disabled, one shot disabled
-	hts221_write_reg(HTS221_REG_CTRL_REG3, 0x00);	//active high, push-pull mode, DRDY pin disabled
+    //initialize other registers.
+    hts221_write_reg(HTS221_REG_CTRL_REG1, 0x85);	//power active, block data update until MSB LSB all ready, 1Hz report
+    hts221_write_reg(HTS221_REG_CTRL_REG2, 0x00);	//normal boot, heater disabled, one shot disabled
+    hts221_write_reg(HTS221_REG_CTRL_REG3, 0x00);	//active high, push-pull mode, DRDY pin disabled
 
-	//read calibration data for later calculating.
-	reg_cache_T0_degC_x8 = hts221_read_byte(HTS221_REG_T0_DEGC_X8);
-	reg_cache_T1_degC_x8 = hts221_read_byte(HTS221_REG_T1_DEGC_X8);
-	reg_cache_T1_T0_msb = hts221_read_byte(HTS221_REG_T1_T0_MSB);
-	reg_cache_T0_OUT_L = hts221_read_byte(HTS221_REG_T0_OUT_L);
-	reg_cache_T0_OUT_H = hts221_read_byte(HTS221_REG_T0_OUT_H);
-	reg_cache_T1_OUT_L = hts221_read_byte(HTS221_REG_T1_OUT_L);
-	reg_cache_T1_OUT_H = hts221_read_byte(HTS221_REG_T1_OUT_H);
+    //read calibration data for later calculating.
+    reg_cache_T0_degC_x8 = hts221_read_byte(HTS221_REG_T0_DEGC_X8);
+    reg_cache_T1_degC_x8 = hts221_read_byte(HTS221_REG_T1_DEGC_X8);
+    reg_cache_T1_T0_msb = hts221_read_byte(HTS221_REG_T1_T0_MSB);
+    reg_cache_T0_OUT_L = hts221_read_byte(HTS221_REG_T0_OUT_L);
+    reg_cache_T0_OUT_H = hts221_read_byte(HTS221_REG_T0_OUT_H);
+    reg_cache_T1_OUT_L = hts221_read_byte(HTS221_REG_T1_OUT_L);
+    reg_cache_T1_OUT_H = hts221_read_byte(HTS221_REG_T1_OUT_H);
 
-	return 0;
+    return 0;
 }
 
 
