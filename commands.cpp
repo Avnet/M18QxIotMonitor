@@ -220,6 +220,8 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
         printf("  HTS221 - display informatioin about\n");
         printf("  BINIO - display informatioin about\n");
         printf("  MAL -  display information to/from the MAL\n");
+        printf("  I2C -  display information on the I2C bus\n");
+        printf("  SPI -  display information on the SPI bus\n");
         return 0;
         }
 
@@ -281,12 +283,19 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
             else
                 dbg_flag &= ~DBG_BINIO;
             }
-        if( !strcmp(strupr(flag),"MAL") ) {
+        if( !strcmp(strupr(flag),"I2C") ) {
             done=1;
             if( a == 1)
-                dbg_flag |= DBG_MAL;
+                dbg_flag |= DBG_I2C;
             else
-                dbg_flag &= ~DBG_MAL;
+                dbg_flag &= ~DBG_I2C;
+            }
+        if( !strcmp(strupr(flag),"SPI") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_SPI;
+            else
+                dbg_flag &= ~DBG_SPI;
             }
         flag   = (char*)argv[++idx];
         }
@@ -564,20 +573,34 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 //dev reg nbr_of_bytes
 int command_i2cpeek(int argc, const char * const * argv )
 {
-  extern i2c_handle_t my_i2c;
-  unsigned char nbr = 0x00;
+  i2c_handle_t my_handle=(i2c_handle_t)NULL;
+  int nbr = 0x00;
   unsigned char buf[100];                 //use a 100 byte working buffer
-  char    reg, dev;
+  unsigned char reg;
+  uint16_t dev;
   int     i;
 
     if( argc == 4 ) {
         memset(buf,0x00,sizeof(buf));
-        nbr = (unsigned char) atoi(argv[3]); //number of bytes to read
-        sscanf(argv[2],"%x",(int)&reg);      //register to read from
-        sscanf(argv[1],"%x",(int)&dev);      //device ID
+        nbr = atoi(argv[3]); //number of bytes to read
+        sscanf(argv[2],"%x",(int*)&reg);      //register to read from
+        sscanf(argv[1],"%x",(int*)&dev);      //device ID
 
-        i2c_write(my_i2c, dev, (unsigned char*)&reg, 1, I2C_NO_STOP);
-        i2c_read (my_i2c, dev, buf, nbr);
+        i=i2c_bus_init(I2C_BUS_I, &my_handle);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_bus_init=%d\n",i);
+
+        i=i2c_write(my_handle, dev, &reg, 1, I2C_NO_STOP);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_write(handle,0x%02X,%d,1,I2C_NO_STOP)=%d\n",dev,reg,i);
+
+        i=i2c_read(my_handle, dev, buf, nbr);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_read(handle,0x%02X,buf,%d)=%d\n",dev,nbr,i);
+
+        i=i2c_bus_deinit(&my_handle);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_bus_deinit=%d\n",i);
 
         for (i=0; i<nbr; i+=8) 
             printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
