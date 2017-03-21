@@ -26,7 +26,6 @@ uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
     i2c_read(my_handle, LIS2DW12_SAD, &value_read, 1);
     i2c_bus_deinit(&my_handle);
 
-printf("read=0x%02X\n",value_read);
     return value_read;
 }
 
