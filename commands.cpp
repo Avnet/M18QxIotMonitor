@@ -81,7 +81,7 @@ const cmd_entry mon_command_table[] =
   0, "?",           "?             Displays this help screen",                                              command_help,
   0, "HELP",        "help          Displays this help screen",                                              command_help,
   0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
-  0, "GPIO",        "gpion # #     Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
+  0, "GPIO",        "gpio # #      Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
   0, "BLINK",       "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",command_blink, 
   0, "HTS221",      "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
   0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
@@ -208,18 +208,30 @@ void print_banner(void) {
 int command_dbg(int argc __attribute__((unused)), const char * const * argv ) 
 {
     char *action=NULL, *flag=NULL;
-    int a=0, done=0;
+    int a=0, done=0, idx;
 
-    if( argc == 3 ) {
-        action = (char*)argv[1];
-        flag   = (char*)argv[2];
-        a |= !strcmp(strupr(action),"SET")?1:0;
-        a |= !strcmp(strupr(action),"1")?1:0;
-        a |= !strcmp(strupr(action),"CLR")?2:0;
-        a |= !strcmp(strupr(action),"0")?2:0;
+    if( argc < 3 ) {
+        printf("Possible flags are:(0x%04X)\n",dbg_flag);
+        printf("  CURL - display information about CURL operations\n");
+        printf("  FLOW - display information about CURL operations\n");
+        printf("  M2X - display informatioin about\n");
+        printf("  TIMER - display informatioin about\n");
+        printf("  LIS2DW12 - display informatioin about\n");
+        printf("  HTS221 - display informatioin about\n");
+        printf("  BINIO - display informatioin about\n");
+        printf("  MAL -  display information to/from the MAL\n");
+        return 0;
         }
 
-    if( a && action != NULL && flag != NULL ) {
+    action = (char*)argv[1];
+    a |= !strcmp(strupr(action),"SET")?1:0;
+    a |= !strcmp(strupr(action),"1")?1:0;
+    a |= !strcmp(strupr(action),"CLR")?2:0;
+    a |= !strcmp(strupr(action),"0")?2:0;
+
+    flag   = (char*)argv[(idx=2)];
+
+    while( a && action != NULL && flag != NULL && idx < argc ) {
         if( !strcmp(strupr(flag),"CURL") ) {
             done=1;
             if( a == 1)
@@ -276,20 +288,10 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
             else
                 dbg_flag &= ~DBG_MAL;
             }
+        flag   = (char*)argv[++idx];
         }
-    if( !done ) {
-        printf("Possible flags are:(0x%04X)\n",dbg_flag);
-        printf("  CURL - display information about CURL operations\n");
-        printf("  FLOW - display information about CURL operations\n");
-        printf("  M2X - display informatioin about\n");
-        printf("  TIMER - display informatioin about\n");
-        printf("  LIS2DW12 - display informatioin about\n");
-        printf("  HTS221 - display informatioin about\n");
-        printf("  BINIO - display informatioin about\n");
-        printf("  MAL -  display information to/from the MAL\n");
-        }
-    else
-        printf("Debug flag set to: 0x%04X\n",dbg_flag);
+
+    printf("Debug flag set to: 0x%04X\n",dbg_flag);
 }
 
 int command_iotmon(int argc __attribute__((unused)), const char * const * argv __attribute__((unused))) {
@@ -463,10 +465,11 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
     int indx, state;
     int k=0, done;
 
-    if( argc == 3 ) {
-        indx   = atoi(&argv[1][9]);
-        state  = atoi(argv[2]);
-        }
+    if( argc != 3 ) 
+        return 0;
+
+    indx   = atoi(&argv[1][9]);
+    state  = atoi(argv[2]);
 
     switch(indx) {
         case 92:  //GPIO_02
@@ -501,10 +504,11 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     int indx=0, rate=0;
     int k=0, done, state;
     
-    if( argc == 3 ) {
-        indx = atoi(&argv[1][9]);
-        rate = atoi(argv[2]);
-        }
+    if( argc != 3 ) 
+        return 0;
+
+    indx = atoi(&argv[1][9]);
+    rate = atoi(argv[2]);
 
     switch(indx) {
         case 92:  //GPIO_02
@@ -667,6 +671,7 @@ int command_facttest(int argc __attribute__((unused)), const char * const * argv
     printf("     LIS2DW12 Device id: 0x%02X\n\n", lis2dw12_getDeviceID());
 
 //Test: User Push-Button/LED test
+#define WAIT_4_BUTTON {while(!button_press); while(button_press);} 
     binario_io_close();
     gpio_init( GPIO_PIN_92,  &red_led );
     gpio_init( GPIO_PIN_101, &green_led );
@@ -689,34 +694,32 @@ int command_facttest(int argc __attribute__((unused)), const char * const * argv
     printf(" Press user button to cycle through all colors:\n");
     set_color((char*)"BLUE");
     printf(" Color set to BLUE\n");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
     printf( "Button pressed for %d seconds. Now GREEN\n", keypress_time.tv_sec);
     set_color((char*)"GREEN");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now BLUE\n", keypress_time.tv_sec);
     set_color((char*)"BLUE");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now MAGENTA\n", keypress_time.tv_sec);
     set_color((char*)"MAGENTA");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now TURQUOISE\n", keypress_time.tv_sec);
     set_color((char*)"TURQUOISE");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now RED\n", keypress_time.tv_sec);
     set_color((char*)"RED");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now WHITE\n", keypress_time.tv_sec);
     set_color((char*)"WHITE");
-    while( !button_press ); /* wait for a button press */
-    while( button_press ); /* wait for the user to release the button */
+    WAIT_4_BUTTON;
     printf( "Button pressed for %d seconds. Now OFF\n", keypress_time.tv_sec);
     set_color((char*)"OFF");
+    printf( "WWAN LED now on.\n");
+    wwan_io(1);
+    WAIT_4_BUTTON;
+    wwan_io(0);
+    printf( "LED Testing completed.\n");
+
     gpio_deinit( &red_led);
     gpio_deinit( &green_led);
     gpio_deinit( &blue_led);
