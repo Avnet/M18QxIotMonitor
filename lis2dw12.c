@@ -37,3 +37,4 @@ uint8_t lis2dw12_getDeviceID(void) {
     return lis2dw12_read_byte(LIS2DW12_WHO_AM_I_ADDR);
 }
 
+

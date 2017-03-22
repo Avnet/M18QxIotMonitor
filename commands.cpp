@@ -29,6 +29,7 @@ extern "C" {
 #include "mytimer.h"
 #include "http.h"
 #include "m2x.h"
+#include "MAX31855.hpp"
 
 #include "mal.hpp"
 
@@ -76,9 +77,10 @@ const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {
-  max_moncommands, ";",   "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
+  max_moncommands, ";",   
+     "A ';' denotes that the rest of the line is a comment and not to be executed.",            NULL,
   0, ";",           
-     "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",  NULL,
+     "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",                   NULL,
   0, "?",           
      "?             Displays this help screen",                                                 command_help,
   0, "HELP",        
@@ -91,6 +93,8 @@ const cmd_entry mon_command_table[] =
      "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",   command_blink, 
   0, "HTS221",      
      "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
+  0, "MAX31855",      
+     "MAX31855      Read the MAX31855 Thermocouple-to-Digital Converter (SPI BUS on PMOD)",     command_spi,
   0, "GPS",         
      "GPS           Display GPS information                                             ",      command_gps,
   0, "ADC",         
@@ -106,7 +110,7 @@ const cmd_entry mon_command_table[] =
   0, "DODEMO",      
      "dodemo        Run the Demo Program (hold user key for > 3 sedonds to return to monitor)", command_demo_mode,
   0, "EXIT",        
-     "exit          End Program execution",                                                     command_exit,
+     "exit          End Program execution",                                                     command_exit
   };
 #define _MAX_MONCOMMANDS	(sizeof(mon_command_table)/sizeof(cmd_entry))
 
@@ -121,7 +125,7 @@ const cmd_entry fac_command_table[] =
   0, "WWAN_LED",    "wwan_led 0/1  Disable/Enable the WWAN LED",               command_WWANLED,
   0, "TX2M2X",      "tx2m2x Y X Z  Tx data Y times every X secs from device Z",command_tx2m2x, 
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
-  0, "EXIT",        "exit          End Program execution",                     command_exit,
+  0, "EXIT",        "exit          End Program execution",                     command_exit
   };
 #define _MAX_IOTCOMMANDS	(sizeof(fac_command_table)/sizeof(cmd_entry))
 
@@ -131,6 +135,7 @@ int command_blink(int argc, const char * const * argv );
 int command_sndat(int argc, const char * const * argv );
 int command_facttest(int argc, const char * const * argv );
 int command_hts221(int argc __attribute__((unused)), const char * const * argv );
+int command_spi(int argc __attribute__((unused)), const char * const * argv );
 int command_i2cpeek(int argc, const char * const * argv );
 int command_i2cpoke(int argc, const char * const * argv );
 int command_peek(int argc, const char * const * argv );
@@ -171,7 +176,7 @@ char * completion_array [MAX(_MAX_MONCOMMANDS,_MAX_IOTCOMMANDS) + 1];   	// arra
 char ** complet (int argc, const char * const * argv)
 {
     int j = 0;
-    long max = (long)current_table->max_elements;
+    int max = current_table->max_elements;
     cmd_entry *tptr = current_table;
     completion_array[0] = NULL;
 
@@ -352,27 +357,25 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 // ----------------------------------------------------------------------------------------------
 int process_command (int argc, const char * const * argv)
 {
-        int i = 1;
-        long max = current_table->max_elements;
-        cmd_entry *tptr = current_table;
+    int i = 1;
+    int max = current_table->max_elements;
+    cmd_entry *tptr = current_table;
 
-        if (*argv[0] != ';') {
-          if (*argv[0] != '?') {
-            while ((strcmp(strupr((char*)argv[0]), (tptr[i]).commandp) != 0) && ++i < max) 
-              /* check next */;
-
+    if (*argv[0] != ';') {
+        if (*argv[0] != '?') {
+            while( strcmp(strupr((char*)argv[0]), (tptr[i]).commandp) && ++i < max );
             if (i < max)
-              (tptr[i]).func_p(argc,argv);
+                (tptr[i]).func_p(argc,argv);
             else
-              my_printf("\nunknown command: %s\n",argv[0]);
+                my_printf("\nunknown command: %s\n",argv[0]);
             }
-          else
-            command_help(argc,argv);
-          }
         else
-          my_printf("\n");
+            command_help(argc,argv);
+        }
+    else
+        my_printf("\n");
 	
-        return 0;
+    return 0;
 }
 
 
@@ -408,7 +411,10 @@ void sigint_cb (void)
 char* strupr(char* s)
 {
     char *p = s;
-    while (*p=toupper(*p)) p++;
+    while (*p){
+        *p=toupper(*p);
+        p++;
+        }
     return s;
 }
 
@@ -811,4 +817,17 @@ int command_WWANLED(int argc __attribute__((unused)), const char * const * argv 
         wwan_io(enable);
 }
 
+
+int command_spi(int argc __attribute__((unused)), const char * const * argv )
+{
+    MAX31855 max;
+
+    printf("Testing MAX31855.\n");
+    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
+    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
+    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
+    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
+    printf("Errors encountered = 0x%02X\n",max.readError());
+    return 0;
+}
 
