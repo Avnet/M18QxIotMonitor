@@ -93,6 +93,8 @@ const cmd_entry mon_command_table[] =
      "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",   command_blink, 
   0, "HTS221",      
      "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
+  0, "LIS2DW12",      
+     "LIS2DW12      Display information about the LIS2DW12 sensor, send X msgs with Y sec delay", command_lis2dw12,
   0, "MAX31855",      
      "MAX31855      Read the MAX31855 Thermocouple-to-Digital Converter (SPI BUS on PMOD)",     command_spi,
   0, "GPS",         
@@ -135,6 +137,8 @@ int command_blink(int argc, const char * const * argv );
 int command_sndat(int argc, const char * const * argv );
 int command_facttest(int argc, const char * const * argv );
 int command_hts221(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw(int argc __attribute__((unused)), const char * const * argv );
 int command_spi(int argc __attribute__((unused)), const char * const * argv );
 int command_i2cpeek(int argc, const char * const * argv );
 int command_i2cpoke(int argc, const char * const * argv );
@@ -712,7 +716,9 @@ int command_facttest(int argc __attribute__((unused)), const char * const * argv
     printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
 
 //Test: Read ID register from LIS2DW12
-    printf("     LIS2DW12 Device id: 0x%02X\n\n", lis2dw12_getDeviceID());
+    printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
+    printf("   LIS2DW12 12-bit temp: %d\n", lis2dw12_readTemp(true));
+    printf("   LIS2DW12  8-bit temp: %d\n\n", lis2dw12_readTemp(false));
 
 //Test: User Push-Button/LED test
 #define WAIT_4_BUTTON {while(!button_press); while(button_press);} 
@@ -820,14 +826,73 @@ int command_WWANLED(int argc __attribute__((unused)), const char * const * argv 
 
 int command_spi(int argc __attribute__((unused)), const char * const * argv )
 {
-    MAX31855 max;
+//    MAX31855 max;
 
-    printf("Testing MAX31855.\n");
-    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
-    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
-    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
-    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
-    printf("Errors encountered = 0x%02X\n",max.readError());
+//    max.init();
+//    printf("Testing MAX31855.\n");
+//    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
+//    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
+//    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
+//    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
+//    printf("Errors encountered = 0x%02X\n",max.readError());
+  
+    spi_handle_t my_spi=0;
+    uint32_t txb, rxb;
+    int i;
+
+    i=spi_bus_init(SPI_BUS_II, &my_spi);
+    printf("spi_bus_init()=%d\n",i);
+
+// CPOL - Sets the data clock to be idle when high if set to 1, idle when low if set to 0
+// CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
+// 32 bits per word
+    i=spi_format(my_spi, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
+    printf("spi_format()=%d\n",i);
+
+    i=spi_frequency(my_spi, 4000000);
+    printf("spi_frequency()=%d\n",i);
+
+    i=spi_transfer(my_spi, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t));
+    printf("spi_transfer()=%d\n",i);
+
+    spi_bus_deinit(&my_spi);
+
     return 0;
+}
+
+
+int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv )
+{
+    void lis2dw12_timer_task(size_t timer_id, void * user_data);
+    int repeats, delay = 0;
+    float temp;
+
+    lis2dw12_configure_tap_event(1);
+    printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
+    printf("   LIS2DW12 12-bit temp: %d\n", lis2dw12_readTemp(true));
+    printf("   LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp(false));
+    lis2dw12_timer_task((size_t)0, (void *)argv);
+
+#if 0
+    if( argc == 3 ) {
+        delay   = atoi(argv[2]);
+        repeats = atoi(argv[1]);
+        }
+    else if( argc == 2 )
+        repeats = atoi(argv[1]);
+    else
+        repeats = 1;
+
+    printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
+    do {
+        temp  = hts221_getTemp();
+        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+        sleep(delay);
+        }
+    while (--repeats);
+#endif
+
 }
 

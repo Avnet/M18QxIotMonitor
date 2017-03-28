@@ -55,6 +55,7 @@ void binario_io_close(void)
 #include <time.h>
 void gpio_timer_task(size_t timer_id, void * user_data)
 {
+    void lis2dw12_timer_task(size_t timer_id, void * user_data);
     struct timer_node * node = (struct timer_node *)timer_id;
     GPIOPIN *mytimer = (GPIOPIN*)node->user_data;
     int done,i=0;
@@ -74,6 +75,7 @@ void gpio_timer_task(size_t timer_id, void * user_data)
         }
     (mytimer[i]).val = !(mytimer[i]).val;  //toggle the value
     gpio_write( (mytimer[i]).hndl, (mytimer[i]).val );
+    lis2dw12_timer_task(0,NULL);
 }
 
 

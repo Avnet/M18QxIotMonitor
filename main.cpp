@@ -112,8 +112,10 @@ int main(int argc, char *argv[])
     binary_io_init();
 
     c=lis2dw12_initialize();
-    if( dbg_flag & DBG_LIS2DW12 )
+    if( dbg_flag & DBG_LIS2DW12 ) {
         printf("-LIS2DW12: lis2dw12_initialize() = %d\n",c);
+        lis2dw12_regdump();
+        }
 
     c=lis2dw12_getDeviceID();
     if( dbg_flag & DBG_LIS2DW12 )

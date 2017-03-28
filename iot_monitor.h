@@ -87,6 +87,7 @@ extern int command_blink(int argc, const char * const * argv );
 extern int command_sndat(int argc, const char * const * argv );
 extern int command_baud(int argc, const char * const * argv );
 extern int command_hts221(int argc, const char * const * argv );
+extern int command_lis2dw12(int argc, const char * const * argv );
 extern int command_spi(int argc, const char * const * argv );
 extern int command_i2cpeek(int argc, const char * const * argv );
 extern int command_i2cpoke(int argc, const char * const * argv );

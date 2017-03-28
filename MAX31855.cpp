@@ -1,19 +1,24 @@
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "MAX31855.hpp"
 
 MAX31855::MAX31855() : my_spi(0) { };
 
 void MAX31855::init(void) {
-    spi_bus_init(SPI_BUS_I, &my_spi);
-
+    int i;
+    i=spi_bus_init(SPI_BUS_II, &my_spi);
+    printf("spi_bus_init()=%d\n",i);
 // CPOL - Sets the data clock to be idle when high if set to 1, idle when low if set to 0
 // CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
 // 32 bits per word
-    spi_format(my_spi, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
-    spi_frequency(my_spi, 4000000);
+    i=spi_format(my_spi, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
+    printf("spi_format()=%d\n",i);
+    i=spi_frequency(my_spi, 4000000);
+    printf("spi_frequency()=%d\n",i);
 
     if( spi_read() ) {
+        printf("spi_read() FAILED\n",i);
         spi_bus_deinit(&my_spi);
         }
 }
