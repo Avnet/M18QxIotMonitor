@@ -32,6 +32,8 @@
 #define DBG_BINIO	0x0100
 #define DBG_MAL         0x0200
 #define DBG_DEMO	0x0400
+#define DBG_I2C		0x0800
+#define DBG_SPI		0x1000
 
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")
@@ -85,6 +87,8 @@ extern int command_blink(int argc, const char * const * argv );
 extern int command_sndat(int argc, const char * const * argv );
 extern int command_baud(int argc, const char * const * argv );
 extern int command_hts221(int argc, const char * const * argv );
+extern int command_lis2dw12(int argc, const char * const * argv );
+extern int command_spi(int argc, const char * const * argv );
 extern int command_i2cpeek(int argc, const char * const * argv );
 extern int command_i2cpoke(int argc, const char * const * argv );
 extern int command_peek(int argc, const char * const * argv );
@@ -96,6 +100,7 @@ extern int command_iotmon(int argc, const char * const * argv );
 extern int command_wnctest(int argc, const char * const * argv );
 extern int command_iothelp(int argc, const char * const * argv );
 extern int command_WWANStatus(int, char const* const*);
+extern int command_WWANLED(int, char const* const*);
 extern int command_WNCInfo(int argc, const char * const * argv );
 extern int command_tx2m2x(int argc, const char * const * argv );
 extern int command_exit(int argc, const char * const * argv );

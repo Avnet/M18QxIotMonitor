@@ -29,6 +29,7 @@ extern "C" {
 #include "mytimer.h"
 #include "http.h"
 #include "m2x.h"
+#include "MAX31855.hpp"
 
 #include "mal.hpp"
 
@@ -37,6 +38,7 @@ extern "C" {
 #endif
 int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction);
 void set_color(char *);
+void wwan_io(int);
 #ifdef __cplusplus
 }
 #endif
@@ -75,22 +77,42 @@ const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {
-  max_moncommands, ";",   "A ';' denotes that the rest of the line is a comment and not to be executed.",NULL,
-  0, ";",           "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",  NULL,
-  0, "?",           "?             Displays this help screen",                                              command_help,
-  0, "HELP",        "help          Displays this help screen",                                              command_help,
-  0, "FTEST",       "ftest         Perform series of factory pass/fail tests",                              command_facttest,
-  0, "GPIO",        "gpion # #     Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                    command_gpio,
-  0, "BLINK",       "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",command_blink, 
-  0, "HTS221",      "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
-  0, "GPS",         "GPS           Display GPS information                                             ",   command_gps,
-  0, "ADC",         "ADC           Read ADC                                                            ",   command_adc,
-  0, "I2CPEEK",     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",   command_i2cpeek,
-  0, "I2CPOKE",     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",  command_i2cpoke,
-  0, "DEBUG",       "DEBUG X V     Set or Clear a debug flag X=set or clr, V = flag to set or clear",       command_dbg,
-  0, "WNC",         "wnc           Enters WNC testing command mode",                                        command_wnctest,
-  0, "DODEMO",      "dodemo        Run the Demo Program (will not return to monitor)",                      command_demo_mode,
-  0, "EXIT",        "exit          End Program execution",                                                  command_exit,
+  max_moncommands, ";",   
+     "A ';' denotes that the rest of the line is a comment and not to be executed.",            NULL,
+  0, ";",           
+     "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",                   NULL,
+  0, "?",           
+     "?             Displays this help screen",                                                 command_help,
+  0, "HELP",        
+     "help          Displays this help screen",                                                 command_help,
+  0, "FTEST",       
+     "ftest         Perform series of factory pass/fail tests",                                 command_facttest,
+  0, "GPIO",        
+     "gpio # #      Drives GPIO pin high/low as desired (GPIO GPIx 0/1)",                       command_gpio,
+  0, "BLINK",       
+     "blink # #     Alternates GPIO between 0/1 @ requested rate (secs)<interval=0 to stop>",   command_blink, 
+  0, "HTS221",      
+     "HTS221 X Y    Display information about the HTS221 sensor, send X msgs with Y sec delay", command_hts221,
+  0, "LIS2DW12",      
+     "LIS2DW12      Display information about the LIS2DW12 sensor, send X msgs with Y sec delay", command_lis2dw12,
+  0, "MAX31855",      
+     "MAX31855      Read the MAX31855 Thermocouple-to-Digital Converter (SPI BUS on PMOD)",     command_spi,
+  0, "GPS",         
+     "GPS           Display GPS information                                             ",      command_gps,
+  0, "ADC",         
+     "ADC           Read ADC                                                            ",      command_adc,
+  0, "I2CPEEK",     
+     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",command_i2cpeek,
+  0, "I2CPOKE",     
+     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",command_i2cpoke,
+  0, "DEBUG",       
+     "DEBUG X V     Set or Clear a debug flag X=set or clr, V = flag to set or clear",          command_dbg,
+  0, "WNC",         
+     "wnc           Enters WNC testing command mode",                                           command_wnctest,
+  0, "DODEMO",      
+     "dodemo        Run the Demo Program (hold user key for > 3 sedonds to return to monitor)", command_demo_mode,
+  0, "EXIT",        
+     "exit          End Program execution",                                                     command_exit
   };
 #define _MAX_MONCOMMANDS	(sizeof(mon_command_table)/sizeof(cmd_entry))
 
@@ -102,9 +124,10 @@ const cmd_entry fac_command_table[] =
   0, "HELP",        "help          Displays this help screen",                 command_help,
   0, "WNCINFO",     "wncinfo       Displays the WNC module information",       command_WNCInfo, 
   0, "WWANSTAT",    "wwanstat      Displays the WWAN status information",      command_WWANStatus,
+  0, "WWAN_LED",    "wwan_led 0/1  Disable/Enable the WWAN LED",               command_WWANLED,
   0, "TX2M2X",      "tx2m2x Y X Z  Tx data Y times every X secs from device Z",command_tx2m2x, 
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
-  0, "EXIT",        "exit          End Program execution",                     command_exit,
+  0, "EXIT",        "exit          End Program execution",                     command_exit
   };
 #define _MAX_IOTCOMMANDS	(sizeof(fac_command_table)/sizeof(cmd_entry))
 
@@ -114,6 +137,9 @@ int command_blink(int argc, const char * const * argv );
 int command_sndat(int argc, const char * const * argv );
 int command_facttest(int argc, const char * const * argv );
 int command_hts221(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw(int argc __attribute__((unused)), const char * const * argv );
+int command_spi(int argc __attribute__((unused)), const char * const * argv );
 int command_i2cpeek(int argc, const char * const * argv );
 int command_i2cpoke(int argc, const char * const * argv );
 int command_peek(int argc, const char * const * argv );
@@ -126,6 +152,7 @@ int command_wnctest(int argc, const char * const * argv );
 int command_tx2m2x(int argc, const char * const * argv );
 int command_WNCInfo(int argc, const char * const * argv );
 int command_WWANStatus(int, char const* const*);
+int command_WWANLED(int, char const* const*);
 int command_gps(int argc, const char * const * argv );
 int command_adc(int argc, const char * const * argv );
 int command_exit(int, char const* const*);
@@ -153,7 +180,7 @@ char * completion_array [MAX(_MAX_MONCOMMANDS,_MAX_IOTCOMMANDS) + 1];   	// arra
 char ** complet (int argc, const char * const * argv)
 {
     int j = 0;
-    long max = (long)current_table->max_elements;
+    int max = current_table->max_elements;
     cmd_entry *tptr = current_table;
     completion_array[0] = NULL;
 
@@ -205,18 +232,32 @@ void print_banner(void) {
 int command_dbg(int argc __attribute__((unused)), const char * const * argv ) 
 {
     char *action=NULL, *flag=NULL;
-    int a=0, done=0;
+    int a=0, done=0, idx;
 
-    if( argc == 3 ) {
-        action = (char*)argv[1];
-        flag   = (char*)argv[2];
-        a |= !strcmp(strupr(action),"SET")?1:0;
-        a |= !strcmp(strupr(action),"1")?1:0;
-        a |= !strcmp(strupr(action),"CLR")?2:0;
-        a |= !strcmp(strupr(action),"0")?2:0;
+    if( argc < 3 ) {
+        printf("Possible flags are:(0x%04X)\n",dbg_flag);
+        printf("  CURL - display information about CURL operations\n");
+        printf("  FLOW - display information about CURL operations\n");
+        printf("  M2X - display informatioin about\n");
+        printf("  TIMER - display informatioin about\n");
+        printf("  LIS2DW12 - display informatioin about\n");
+        printf("  HTS221 - display informatioin about\n");
+        printf("  BINIO - display informatioin about\n");
+        printf("  MAL -  display information to/from the MAL\n");
+        printf("  I2C -  display information on the I2C bus\n");
+        printf("  SPI -  display information on the SPI bus\n");
+        return 0;
         }
 
-    if( a && action != NULL && flag != NULL ) {
+    action = (char*)argv[1];
+    a |= !strcmp(strupr(action),"SET")?1:0;
+    a |= !strcmp(strupr(action),"1")?1:0;
+    a |= !strcmp(strupr(action),"CLR")?2:0;
+    a |= !strcmp(strupr(action),"0")?2:0;
+
+    flag   = (char*)argv[(idx=2)];
+
+    while( a && action != NULL && flag != NULL && idx < argc ) {
         if( !strcmp(strupr(flag),"CURL") ) {
             done=1;
             if( a == 1)
@@ -266,27 +307,24 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
             else
                 dbg_flag &= ~DBG_BINIO;
             }
-        if( !strcmp(strupr(flag),"MAL") ) {
+        if( !strcmp(strupr(flag),"I2C") ) {
             done=1;
             if( a == 1)
-                dbg_flag |= DBG_MAL;
+                dbg_flag |= DBG_I2C;
             else
-                dbg_flag &= ~DBG_MAL;
+                dbg_flag &= ~DBG_I2C;
             }
+        if( !strcmp(strupr(flag),"SPI") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_SPI;
+            else
+                dbg_flag &= ~DBG_SPI;
+            }
+        flag   = (char*)argv[++idx];
         }
-    if( !done ) {
-        printf("Possible flags are:(0x%04X)\n",dbg_flag);
-        printf("  CURL - display information about CURL operations\n");
-        printf("  FLOW - display information about CURL operations\n");
-        printf("  M2X - display informatioin about\n");
-        printf("  TIMER - display informatioin about\n");
-        printf("  LIS2DW12 - display informatioin about\n");
-        printf("  HTS221 - display informatioin about\n");
-        printf("  BINIO - display informatioin about\n");
-        printf("  MAL -  display information to/from the MAL\n");
-        }
-    else
-        printf("Debug flag set to: 0x%04X\n",dbg_flag);
+
+    printf("Debug flag set to: 0x%04X\n",dbg_flag);
 }
 
 int command_iotmon(int argc __attribute__((unused)), const char * const * argv __attribute__((unused))) {
@@ -323,27 +361,25 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 // ----------------------------------------------------------------------------------------------
 int process_command (int argc, const char * const * argv)
 {
-        int i = 1;
-        long max = current_table->max_elements;
-        cmd_entry *tptr = current_table;
+    int i = 1;
+    int max = current_table->max_elements;
+    cmd_entry *tptr = current_table;
 
-        if (*argv[0] != ';') {
-          if (*argv[0] != '?') {
-            while ((strcmp(strupr((char*)argv[0]), (tptr[i]).commandp) != 0) && ++i < max) 
-              /* check next */;
-
+    if (*argv[0] != ';') {
+        if (*argv[0] != '?') {
+            while( strcmp(strupr((char*)argv[0]), (tptr[i]).commandp) && ++i < max );
             if (i < max)
-              (tptr[i]).func_p(argc,argv);
+                (tptr[i]).func_p(argc,argv);
             else
-              my_printf("\nunknown command: %s\n",argv[0]);
+                my_printf("\nunknown command: %s\n",argv[0]);
             }
-          else
-            command_help(argc,argv);
-          }
         else
-          my_printf("\n");
+            command_help(argc,argv);
+        }
+    else
+        my_printf("\n");
 	
-        return 0;
+    return 0;
 }
 
 
@@ -379,7 +415,10 @@ void sigint_cb (void)
 char* strupr(char* s)
 {
     char *p = s;
-    while (*p=toupper(*p)) p++;
+    while (*p){
+        *p=toupper(*p);
+        p++;
+        }
     return s;
 }
 
@@ -460,10 +499,11 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
     int indx, state;
     int k=0, done;
 
-    if( argc == 3 ) {
-        indx   = atoi(&argv[1][9]);
-        state  = atoi(argv[2]);
-        }
+    if( argc != 3 ) 
+        return 0;
+
+    indx   = atoi(&argv[1][9]);
+    state  = atoi(argv[2]);
 
     switch(indx) {
         case 92:  //GPIO_02
@@ -498,10 +538,11 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     int indx=0, rate=0;
     int k=0, done, state;
     
-    if( argc == 3 ) {
-        indx = atoi(&argv[1][9]);
-        rate = atoi(argv[2]);
-        }
+    if( argc != 3 ) 
+        return 0;
+
+    indx = atoi(&argv[1][9]);
+    rate = atoi(argv[2]);
 
     switch(indx) {
         case 92:  //GPIO_02
@@ -554,31 +595,46 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     while (--repeats);
 }
 
-int command_i2cpeek(int argc __attribute__((unused)), const char * const * argv )
+//dev reg nbr_of_bytes
+int command_i2cpeek(int argc, const char * const * argv )
 {
-  unsigned char nbr  = (unsigned char)atoi(argv[3]);  //get number of bytes to read
+  i2c_handle_t my_handle=(i2c_handle_t)NULL;
+  int nbr = 0x00;
   unsigned char buf[100];                 //use a 100 byte working buffer
-  char    reg, dev;
+  unsigned char reg;
+  uint16_t dev;
   int     i;
-extern i2c_handle_t my_i2c;
 
-  memset(buf,0x00,sizeof(buf));
-  sscanf(argv[2],"%x",(int)&reg);
-  sscanf(argv[1],"%x",(int)&dev);
+    if( argc == 4 ) {
+        memset(buf,0x00,sizeof(buf));
+        nbr = atoi(argv[3]); //number of bytes to read
+        sscanf(argv[2],"%x",(int*)&reg);      //register to read from
+        sscanf(argv[1],"%x",(int*)&dev);      //device ID
 
-//  if( dev == 0x19 )
-//    lis2dw12_read(reg, buf, nbr);
-//  else
-//    hts221_read(reg, buf, nbr);
+        i=i2c_bus_init(I2C_BUS_I, &my_handle);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_bus_init=%d\n",i);
 
-  i2c_write(my_i2c, dev, (unsigned char*)&reg, 1, I2C_NO_STOP);
-  i2c_read (my_i2c, dev, buf, nbr);
+        i=i2c_write(my_handle, dev, &reg, 1, I2C_NO_STOP);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_write(handle,0x%02X,%d,1,I2C_NO_STOP)=%d\n",dev,reg,i);
 
-  for (i=0; i<nbr; i+=8) 
-    printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
-               reg,buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],
-               buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7]);
-  return 2;
+        i=i2c_read(my_handle, dev, buf, nbr);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_read(handle,0x%02X,buf,%d)=%d\n",dev,nbr,i);
+
+        i=i2c_bus_deinit(&my_handle);
+        if( dbg_flag & DBG_I2C )
+            printf("-I2C:i2c_bus_deinit=%d\n",i);
+
+        for (i=0; i<nbr; i+=8) 
+            printf("%04X: %02X %02X %02X %02X %02X %02X %02X %02X %2c %2c %2c %2c %2c %2c %2c %2c\n\r",
+                     reg,buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],
+                     buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7]);
+        }
+    else
+        printf("ERROR: argc=%d\n",argc);
+  return 1;
 }
 
 int command_i2cpoke(int, char const* const*)
@@ -781,5 +837,90 @@ int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
         for (i=0; i<_max_m2xfunctions-1; i++) 
             printf(" - %s\n",(m2xfunctions[i]).name);
         }
+}
+
+int command_WWANLED(int argc __attribute__((unused)), const char * const * argv )
+{
+
+    int enable=-1;
+
+    if( argc == 2 ) 
+        enable = atoi(argv[1]);
+
+    if( enable>=0 )
+        wwan_io(enable);
+}
+
+
+int command_spi(int argc __attribute__((unused)), const char * const * argv )
+{
+//    MAX31855 max;
+
+//    max.init();
+//    printf("Testing MAX31855.\n");
+//    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
+//    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
+//    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
+//    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
+//    printf("Errors encountered = 0x%02X\n",max.readError());
+  
+    spi_handle_t my_spi=0;
+    uint32_t txb, rxb;
+    int i;
+
+    i=spi_bus_init(SPI_BUS_II, &my_spi);
+    printf("spi_bus_init()=%d\n",i);
+
+// CPOL - Sets the data clock to be idle when high if set to 1, idle when low if set to 0
+// CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
+// 32 bits per word
+    i=spi_format(my_spi, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
+    printf("spi_format()=%d\n",i);
+
+    i=spi_frequency(my_spi, 4000000);
+    printf("spi_frequency()=%d\n",i);
+
+    i=spi_transfer(my_spi, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t));
+    printf("spi_transfer()=%d\n",i);
+
+    spi_bus_deinit(&my_spi);
+
+    return 0;
+}
+
+
+int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv )
+{
+    void lis2dw12_timer_task(size_t timer_id, void * user_data);
+    int repeats, delay = 0;
+    float temp;
+
+    lis2dw12_configure_tap_event(1);
+    printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
+    printf("   LIS2DW12 12-bit temp: %d\n", lis2dw12_readTemp(true));
+    printf("   LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp(false));
+    lis2dw12_timer_task((size_t)0, (void *)argv);
+
+#if 0
+    if( argc == 3 ) {
+        delay   = atoi(argv[2]);
+        repeats = atoi(argv[1]);
+        }
+    else if( argc == 2 )
+        repeats = atoi(argv[1]);
+    else
+        repeats = 1;
+
+    printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
+    do {
+        temp  = hts221_getTemp();
+        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+        sleep(delay);
+        }
+    while (--repeats);
+#endif
+
 }
 
