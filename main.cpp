@@ -48,6 +48,7 @@
 
 sysinfo mySystem;
 int headless=false;
+int ft_mode=false;
 static struct termios oldt, newt;
 
 void my_putchar(const char *c)
@@ -72,8 +73,11 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    while((c=getopt(argc,argv,"fd:a:t:l:v:")) != -1 )
+    while((c=getopt(argc,argv,"rfd:a:t:l:v:")) != -1 )
         switch(c) {
+           case 'r': //factory test
+               ft_mode=true;
+               break;
            case 'd': //device_id
                device_id = optarg;
                printf("-setting Device ID to [%s]\n",device_id);
@@ -127,13 +131,17 @@ int main(int argc, char *argv[])
     if( dbg_flag & DBG_LIS2DW12 )
         printf("-LIS2DW12: lis2dw12_getDeviceID()= 0x%02X\n",c);
 
-    if( headless ){
-        printf("-running DEMO mode\n");
-        command_headless(argc, argv );
+    if( ft_mode ) {
+        command_facttest(argc, argv);
+        app_exit();
         }
+
+    if( headless )
+        command_headless(argc, argv );
     
     print_banner();
-    set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), app_exit, &process_command, complet, mon_command_table);
+    set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), 
+                   app_exit, &process_command, complet, mon_command_table);
     new_line_handler(prl);
 
     while(1)
