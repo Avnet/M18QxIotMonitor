@@ -897,11 +897,10 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
 
     lis2dw12_configure_tap_event(1);
     printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
-    printf("   LIS2DW12 12-bit temp: %d\n", lis2dw12_readTemp(true));
-    printf("   LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp(false));
+    printf("   LIS2DW12 12-bit temp: %5.2f\n", lis2dw12_readTemp12());
+    printf("   LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp8());
     lis2dw12_timer_task((size_t)0, (void *)argv);
 
-#if 0
     if( argc == 3 ) {
         delay   = atoi(argv[2]);
         repeats = atoi(argv[1]);
@@ -920,7 +919,6 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
         sleep(delay);
         }
     while (--repeats);
-#endif
 
 }
 

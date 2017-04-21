@@ -33,9 +33,20 @@ typedef struct {
 #define SET_DEF_VAL(x,y)	(lis2dw12_registers[x].def=y)
 #define CONVRT_12BIT(h,l,hp)	((((int)h<<8)|l)>>(hp?2:4))
 
+static inline long convert_results(uint8_t ms, uint8_t ls, unsigned hp)
+{
+    // incomming data is 2 bytes, in 2's complement form, need to 
+    // convert it to a signed int, that is what al the shifting is about
+    int v = ((ls | ms << 8)<<((sizeof(int)-2)*8)) >> ((sizeof(int)-2)*8);
+
+    if (hp)
+        return (long)v >> 4;
+    else
+        return (long)v >> 2;
+}
+
 int sensitivity=0;
 int ACCX, ACCY, ACCZ; //linear acceleration sensors
-int high_power_active=0;
 
 REGISTER lis2dw12_registers[] = {
 //  Register              RW  Reg  Current Default  Time of 
@@ -134,8 +145,9 @@ REGISTER lis2dw12_registers[] = {
 #define LIS2DW12_WHO_AM_I_ADDR		lis2dw12_registers[LIS2DW12_WHO_AM_I].reg_addr
 #define LIS2DW12_WHO_AM_I_DEF		lis2dw12_registers[LIS2DW12_WHO_AM_I].def
 
-#define READ_REGISTER(x)	lis2dw12_read_byte(lis2dw12_registers[x].reg_addr); \
-                                lis2dw12_registers[x].t =  time(0) 
+#define READ_REGISTER(x)	        (lis2dw12_registers[x].value=lis2dw12_read_byte(lis2dw12_registers[x].reg_addr))
+#define REGISTER(x)	  	        lis2dw12_registers[x].value
+#define HIGH_POWER_EN	                (REGISTER(LIS2DW12_CTRL1) & 0x40)
 
 uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
     i2c_handle_t my_handle=(i2c_handle_t)NULL;
@@ -200,67 +212,93 @@ void lis2dw12_regdump(void) {
         }
 }
 
-int lis2dw12_readTemp( uint8_t flag12bit ) {
+float lis2dw12_readTemp12( void ) {
+    int i;
+    uint8_t low=0, high=0, v=0;
+    float tempC, tempF;
+
+    /* wait for temp data to be obtained */;
+    while( !(v & 0x40) ) 
+        v=READ_REGISTER(LIS2DW12_STATUS_DUP);
+
+    low = READ_REGISTER(LIS2DW12_OUT_T_L);
+    high= READ_REGISTER(LIS2DW12_OUT_T_H);
+    i = convert_results(high, low, 1);
+if( i<0 ) printf("***** < 0 ::");
+    tempC = (float)(i/16.0) + 25.0;
+    tempF = (tempC*9.0)/5.0 + 32;
+    if( dbg_flag & DBG_LIS2DW12 ){
+        printf("-LIS2DW12: i+25 =%d - 0x%04X\n",i+25,i+25);
+        printf("-LIS2DW12: tempC=%4.2f\n",tempC);
+        printf("-LIS2DW12: tempF=%4.2f\n",tempF);
+        }
+    return tempF;
+}
+
+int lis2dw12_readTemp8( void ) {
     uint8_t low=0, high=0;
     int tempC=0, tempF=0, v=0;
 
+    /* wait for temp data to be obtained */;
     while( !(v & 0x40) ) 
         v=READ_REGISTER(LIS2DW12_STATUS_DUP);
-      /* wait for temp data to be obtained */;
-    if( flag12bit ) {
-        low = READ_REGISTER(LIS2DW12_OUT_T_L);
-        high= READ_REGISTER(LIS2DW12_OUT_T_H);
-        tempC = CONVRT_12BIT(high, low, high_power_active) / 16;
-        }
-    else {
-        tempC = READ_REGISTER(LIS2DW12_OUT_T);
-        }
 
-    tempC += 25;
+    v = (int)READ_REGISTER(LIS2DW12_OUT_T);
+    v = v<<((sizeof(int)-1)*8);
+    v = v>>((sizeof(int)-1)*8);
+if( v<0 ) printf("***** < 0 ::");
+    tempC = v+25;
     tempF = (tempC*9.0)/5.0 + 32;
-
+    if( dbg_flag & DBG_LIS2DW12 ) {
+        printf("-LIS2DW12: reg   =%d - 0x%02X\n",v,v);
+        printf("-LIS2DW12: tempC =%d\n",tempC);
+        printf("-LIS2DW12: tempF =%d\n",tempF);
+        }
     return tempF;
 }
 
 void lis2dw12_onoff( uint8_t on ) {
-    uint8_t reg    = READ_REGISTER(LIS2DW12_CTRL1);
-printf("in lis2dw12_onoff\n");
-    if( on ){
-        high_power_active=(on & 0x40);
-        WRITE_REGISTER(LIS2DW12_CTRL1, (reg & 0x0f)|on);
-        }
-    else {
-        high_power_active=0;
-        WRITE_REGISTER(LIS2DW12_CTRL1, (reg & 0x0f));
-        }
+    uint8_t reg    = REGISTER(LIS2DW12_CTRL1) & 0x0f;
+    
+    if( on )
+        reg |= 0x40;
+    WRITE_REGISTER(LIS2DW12_CTRL1, reg);
+    if( dbg_flag & DBG_LIS2DW12 )
+        printf("-LIS2DW12:HIGH_POWER_EN=%s, CTRL1=0x%02X\n",on? "YES":"NO", reg);
 }
 
 
 static int lis2dw12_get_acc_data( void )
 {
-    uint8_t high, low;
+    uint8_t status=0, high, low;
     int X, Y, Z;
 
-    //
-    //read the X, Y, and Z registers and scale results
-    //
+    while( !(status & 0x01) ) 
+        status = READ_REGISTER(LIS2DW12_STATUS);
+
+    if( dbg_flag & DBG_LIS2DW12 )
+        printf("-LIS2DW12:lis2dw12_get_acc_data, STATUS=0x02X\n", status);
 
     low =READ_REGISTER(LIS2DW12_OUT_X_L);
     high=READ_REGISTER(LIS2DW12_OUT_X_H);
-    X=CONVRT_12BIT(high,low,high_power_active);
+    X=CONVRT_12BIT(high,low,HIGH_POWER_EN);
     ACCX = X * sensitivity;
-printf("X:%d(0x%04X), high=0x%02x, low=0x%02x, %d\n",ACCX, X, high, low, sensitivity);
+    if( dbg_flag & DBG_LIS2DW12 )
+        printf("OUT_X_L=0x%02X, OUT_X_H=0x%02X, X=0x%04X, ACCX=%d\n",low,high,X,ACCX);
+
     low =READ_REGISTER(LIS2DW12_OUT_Y_L);
     high=READ_REGISTER(LIS2DW12_OUT_Y_H);
-    Y=CONVRT_12BIT(high,low,high_power_active);
+    Y=CONVRT_12BIT(high,low,HIGH_POWER_EN);
     ACCY = Y * sensitivity;
-printf("Y:%d(0x%04x), high=0x%02x, low=0x%02x, %d\n",ACCY, Y, high, low, sensitivity);
+    if( dbg_flag & DBG_LIS2DW12 )
+        printf("OUT_Y_L=0x%02X, OUT_Y_H=0x%02X, Y=0x%04X, ACCY=%d\n",low,high,Y,ACCY);
 
     low =READ_REGISTER(LIS2DW12_OUT_Z_L);
     high=READ_REGISTER(LIS2DW12_OUT_Z_H);
-    Z=CONVRT_12BIT(high,low,high_power_active);
+    Z=CONVRT_12BIT(high,low,HIGH_POWER_EN);
     ACCZ = Z * sensitivity;
-printf("Z:%d(0x%04X), high=0x%02x, low=0x%02x, %d\n",ACCZ, Z, high, low, sensitivity);
+    if( dbg_flag & DBG_LIS2DW12 )
+        printf("OUT_Z_L=0x%02X, OUT_Z_H=0x%02X, Z=0x%04X, ACCZ=%d\n",low,high,Z,ACCZ);
 
     return 0;
 }
@@ -275,7 +313,6 @@ printf("in lis2dw12_set_mode\n");
     mode   = ctrl1 & 0xc0;
     lp_mode= ctrl1 & 3;
     fs_mode= ctrl6 & 0x30;
-    high_power_active= ctrl1 & 0x40;
 
     if( !(ctrl1&0xf0) ) {                           //first see if we want to power-down the device
         lis2dw12_onoff( 0 );
@@ -291,16 +328,16 @@ printf("in lis2dw12_set_mode\n");
 
     switch( fs_mode ) {
         case 0x00: //2g
-            sensitivity = high_power_active? LIS2DW12_FS_2G_GAIN_HR : LIS2DW12_FS_2G_GAIN_LP;
+            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_2G_GAIN_HR : LIS2DW12_FS_2G_GAIN_LP;
             break;
         case 0x10: //4g
-            sensitivity = high_power_active? LIS2DW12_FS_4G_GAIN_HR : LIS2DW12_FS_4G_GAIN_LP;
+            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_4G_GAIN_HR : LIS2DW12_FS_4G_GAIN_LP;
             break;
         case 0x20: //8g
-            sensitivity = high_power_active? LIS2DW12_FS_8G_GAIN_HR : LIS2DW12_FS_8G_GAIN_LP;
+            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_8G_GAIN_HR : LIS2DW12_FS_8G_GAIN_LP;
             break;
         case 0x30: //16g
-            sensitivity = high_power_active? LIS2DW12_FS_16G_GAIN_HR : LIS2DW12_FS_16G_GAIN_LP;
+            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_16G_GAIN_HR : LIS2DW12_FS_16G_GAIN_LP;
             break;
         }
 
