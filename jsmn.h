@@ -20,11 +20,11 @@ typedef enum {
 
 typedef enum {
 	/* Not enough tokens were provided */
-	JSMN_ERROR_NOMEM = -1,
+	JSMN_ERROR_NOMEM = -100,
 	/* Invalid character inside JSON string */
-	JSMN_ERROR_INVAL = -2,
+	JSMN_ERROR_INVAL = -200,
 	/* The string is not a full JSON packet, more bytes expected */
-	JSMN_ERROR_PART = -3
+	JSMN_ERROR_PART = -300
 } jsmnerr_t;
 
 /**

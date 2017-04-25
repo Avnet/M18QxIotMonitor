@@ -307,6 +307,13 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
             else
                 dbg_flag &= ~DBG_BINIO;
             }
+        if( !strcmp(strupr(flag),"MAL") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_MAL;
+            else
+                dbg_flag &= ~DBG_MAL;
+            }
         if( !strcmp(strupr(flag),"I2C") ) {
             done=1;
             if( a == 1)
@@ -447,7 +454,7 @@ int command_WWANStatus(int, char const* const*)
     printf(" WWAN Status (");
     start_data_service();
 
-    printf("received %d key/value pairs):\n", get_wwan_status(om, 20));
+    printf("received %d key/value pairs):\n", get_wwan_status(om, sizeof(om)));
     printf("             Radio Mode: %s(%s)\n", radio_mode[atoi(om[3].value)], om[3].value);
     printf("        Signal strength; %s\n", om[4].value);
     printf("           Signal Level: %s\n", om[6].value);
@@ -455,9 +462,12 @@ int command_WWANStatus(int, char const* const*)
     printf(" Circuit-switched state: %s(%s)\n", xs_state[atoi(om[8].value)], om[8].value);
     printf("  Packet-switched state: %s(%s)\n", xs_state[atoi(om[9].value)], om[9].value);
     printf("     Registration state: %s(%s)\n", roaming[atoi(om[16].value)], om[16].value);
+}
 
-//    for(k=0; k<20; k++) 
-//        printf("#%02d: {%s, %s}\n", k, om[k].key, om[k].value);
+void dump_keyvalues(json_keyval *pkv, int siz)
+{
+    for(int k=0; k<siz/sizeof(json_keyval); k++) 
+        printf("#%02d: {%s, %s}\n", k, pkv[k].key, pkv[k].value);
 }
 
 int command_WNCInfo(int, char const* const*)
@@ -471,26 +481,27 @@ int command_WNCInfo(int, char const* const*)
         "4-Resetting",
         "5-Shutting down" };
 
-    printf(" WNC Information:\n");
+    printf(" WNC Information ");
     start_data_service();
 
-    mySystem.model=getModelID(om, 4);
+
+    mySystem.model=getModelID(om, sizeof(om));
     printf("              WNC Model: %s\n",mySystem.model.c_str());
-    mySystem.firmVer=getFirmwareVersion(om, 4);
+    mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
     printf("       Firmware Version: %s\n",mySystem.firmVer.c_str());
-    mySystem.malwarVer=getMALManVer(om, 4);
+    mySystem.malwarVer=getMALManVer(om, sizeof(om));
     printf("            MAL Version: %s\n",mySystem.malwarVer.c_str());
     mySystem.opMode = getOperatingMode(om, 4);
     printf("         Operating Mode: %s\n",om_str[atoi(mySystem.opMode.c_str())]);
-    mySystem.ip=get_ipAddr(om, 4);
+    mySystem.ip=get_ipAddr(om, sizeof(om));
     printf("                     IP: %s\n",mySystem.ip.c_str());
-    mySystem.iccid=getICCID(om, 4);
+    mySystem.iccid=getICCID(om, sizeof(om));
     printf("                  ICCID: %s\n",mySystem.iccid.c_str());
-    mySystem.imei=getIMEI(om, 4);
+    mySystem.imei=getIMEI(om, sizeof(om));
     printf("                   IMEI: %s\n",mySystem.imei.c_str());
-    mySystem.imsi=getIMSI(om, 4);
+    mySystem.imsi=getIMSI(om, sizeof(om));
     printf("                   IMSI: %s\n",mySystem.imsi.c_str());
-    mySystem.msisdn=getMSISDN(om, 4);
+    mySystem.msisdn=getMSISDN(om, sizeof(om));
     printf("                 MSISDN: %s\n",mySystem.msisdn.c_str());
 }
 
@@ -660,7 +671,7 @@ int command_headless(int argc, const char * const * argv )
 
 int command_gps(int argc, const char * const * argv )
 {
-    json_keyval om[4];
+    json_keyval om[8];
     const char *mode[] = {
         "2-MS-based mode",
         "3-MS assisted mode",
@@ -670,10 +681,11 @@ int command_gps(int argc, const char * const * argv )
 
     enableGPS();
 sleep(2);
-    getGPSlocation(om,sizeof(om)/sizeof(char*));
-    setGPSmode(4);
-    setGPS_NMEAFilter( 0xff );
-    getGPSconfig(om,  sizeof(om)/sizeof(char*));
+
+//    getGPSlocation(om,sizeof(om)/sizeof(char*));
+//    setGPSmode(4);
+//    setGPS_NMEAFilter( 0xff );
+    getGPSconfig(om,  sizeof(om));
     disableGPS();
 
 }
@@ -711,16 +723,18 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     printf("\n");
 
 //Test: Read PMOD(I2C): Read/Display Temprature information
-    printf("       HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
-    printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-    printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
+    i = hts221_getDeviceID();
+    if (i != 0) {
+        printf("       HTS221 Device id: 0x%02X\n", i);
+        printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+        printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
+        }
 
 //Test I2C: Read ID register from LIS2DW12
     printf("     LIS2DW12 Device id: 0x%02X\n\n", lis2dw12_getDeviceID());
+    printf("\nreading/display Acceleration data. Press user button to end...\n");
 
-//Test: User Push-Button/LED test
 #define WAIT_FOR_BPRESS {while( !button_press ); while( button_press );}
-
     binario_io_close();
     gpio_init( GPIO_PIN_92,  &red_led );
     gpio_init( GPIO_PIN_101, &green_led );
@@ -736,11 +750,20 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
 
     done = 0;
+    while (!done ) {
+        lis2dw12_timer_task((size_t)0, (void *)argv);
+        sleep(1);
+        done = button_press;
+        }
+
+//Test: User Push-Button/LED test
+    done = 0;
     i = 1;
-    printf( "Cycling through the LED colors\n");
+    printf( "\n\nCycling through the LED colors\n");
+    sleep(2);
     while (!done ) {
        set_color((char*)"OFF");
-       printf( "Color = OFF; new color chose %d\n",i);
+       wwan_io(0);
        switch(i) {
            case 0:
                set_color((char*)"RED");
@@ -764,7 +787,7 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
                set_color((char*)"WHITE");
                break;
            case 7:
-               set_color((char*)"OFF");
+               wwan_io(1);
                break;
            }
        i++;
@@ -774,31 +797,6 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
        }
     WAIT_FOR_BPRESS;
 
-    printf("Press user button to being...\n");
-    WAIT_FOR_BPRESS;
-//    set_color((char*)"BLUE");
-//    printf(" Color = BLUE     \n");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = GREEN    \n");
-//    set_color((char*)"GREEN");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = BLUE     \n");
-//    set_color((char*)"BLUE");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = MAGENTA  \n");
-//    set_color((char*)"MAGENTA");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = TURQUOISE\n");
-//    set_color((char*)"TURQUOISE");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = RED      \n");
-//    set_color((char*)"RED");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = WHITE    \n");
-//    set_color((char*)"WHITE");
-//    WAIT_FOR_BPRESS;
-//    printf( "Color = OFF      \n");
-//    set_color((char*)"OFF");
     gpio_deinit( &red_led);
     gpio_deinit( &green_led);
     gpio_deinit( &blue_led);
@@ -895,11 +893,9 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
     int repeats, delay = 0;
     float temp;
 
-    lis2dw12_configure_tap_event(1);
     printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
     printf("   LIS2DW12 12-bit temp: %5.2f\n", lis2dw12_readTemp12());
     printf("   LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp8());
-    lis2dw12_timer_task((size_t)0, (void *)argv);
 
     if( argc == 3 ) {
         delay   = atoi(argv[2]);
@@ -910,15 +906,17 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
     else
         repeats = 1;
 
-    printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
+    if (repeats > 1 )    
+        printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
+
     do {
-        temp  = hts221_getTemp();
-        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
-        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+        lis2dw12_timer_task((size_t)0, (void *)argv);
+//        temp  = hts221_getTemp();
+//        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+//        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+//        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
         sleep(delay);
         }
     while (--repeats);
-
 }
 

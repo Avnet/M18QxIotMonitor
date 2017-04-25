@@ -36,8 +36,6 @@ enum {
 extern "C" {
 #endif
 
-uint8_t  lis2dw12_read_byte(uint8_t reg_addr);
-void     lis2dw12_write_byte(uint8_t reg_addr, uint8_t value);
 int      lis2dw12_initialize(void);
 uint8_t  lis2dw12_getDeviceID(void);
 void     lis2dw12_regdump(void);
@@ -45,7 +43,6 @@ int      lis2dw12_readTemp8(void);
 float    lis2dw12_readTemp12(void);
 void     lis2dw12_onoff( uint8_t on );
 void     lis2dw12_timer_task(size_t timer_id, void * user_data);
-int      lis2dw12_configure_tap_event(int single_tap);
 
 #ifdef __cplusplus
 }

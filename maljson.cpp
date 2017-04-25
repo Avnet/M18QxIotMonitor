@@ -13,13 +13,14 @@ int parse_maljson(char *jstr, json_keyval rslts[], int s) {
     int ro=0, r, k, i, key=OBJECT;
     jsmn_parser p;
     jsmntok_t t[256]; /* We expect no more than 256 tokens */
-    memset( rslts, 0x00, sizeof(json_keyval)*s);
+
+    memset( rslts, 0x00, s);
 
     if (!strlen(jstr))
       return -3;
 
     jsmn_init(&p);
-    r = jsmn_parse(&p, jstr, strlen(jstr), t, sizeof(t)/sizeof(t[0]));
+    r = jsmn_parse(&p, jstr, strlen(jstr), t, 256);
     if (r < 0) {
         return -1;
 	}

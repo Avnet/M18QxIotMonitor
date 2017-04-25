@@ -15,38 +15,16 @@
 #include "iot_monitor.h"
 #include "lis2dw12.h"
 
-enum {
-	LIS2DW12_LP_MODE = 0, //low-power mode
-	LIS2DW12_HR_MODE,     //high-power mode
-	LIS2DW12_MODE_COUNT,  //how many modes possible
-};
-
-
 typedef struct {
     char    *name;		//name of register
     uint8_t rw:1, reg_addr:7;   //address
     uint8_t value;              //current value
     uint8_t def;                //default value
-    time_t  t;                  //time of last access
+    time_t  t;                  //time of last write
     } REGISTER;
 
-#define SET_DEF_VAL(x,y)	(lis2dw12_registers[x].def=y)
-#define CONVRT_12BIT(h,l,hp)	((((int)h<<8)|l)>>(hp?2:4))
-
-static inline long convert_results(uint8_t ms, uint8_t ls, unsigned hp)
-{
-    // incomming data is 2 bytes, in 2's complement form, need to 
-    // convert it to a signed int, that is what al the shifting is about
-    int v = ((ls | ms << 8)<<((sizeof(int)-2)*8)) >> ((sizeof(int)-2)*8);
-
-    if (hp)
-        return (long)v >> 4;
-    else
-        return (long)v >> 2;
-}
-
-int sensitivity=0;
-int ACCX, ACCY, ACCZ; //linear acceleration sensors
+float sensitivity=0;
+float ACCX, ACCY, ACCZ; //linear acceleration sensors
 
 REGISTER lis2dw12_registers[] = {
 //  Register              RW  Reg  Current Default  Time of 
@@ -55,20 +33,20 @@ REGISTER lis2dw12_registers[] = {
     "OUT_T_L",             0, 0x0d,   0,      0,     0,      //0- Temp sensor output
     "OUT_T_H",             0, 0x0e,   0,      0,     0,      //1- Temp sensor output
     "WHO_AM_I",            0, 0x0f,   0,     0x44,   0,      //2- Who am I ID
-    "CTRL1",               1, 0x20,   0,     0x63,   0,      //3- Control Registers
-    "CTRL2",               1, 0x21,   0,     0x44,   0,      //4- sft rst & auto-increment address
-    "CTRL3",               1, 0x22,   0,      0,     0,      //5- Control Registers
-    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,      0,     0,      //6- Control Registers
-    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,      0,     0,      //7- Control Registers
-    "CTRL6",               1, 0x25,   0,      0,     0,      //8- Control Registers
+    "CTRL1",               1, 0x20,   0,     0x6a,   0,      //3- Control Register
+    "CTRL2",               1, 0x21,   0,     0x08,   0,      //4- Control Register
+    "CTRL3",               1, 0x22,   0,     0x02,   0,      //5- Control Register
+    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,      0,     0,      //6- Control Register
+    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,      0,     0,      //7- Control Register
+    "CTRL6",               1, 0x25,   0,      0,     0,      //8- Control Register
     "OUT_T",               0, 0x26,   0,      0,     0,      //9- Temp sensor output
     "STATUS",              0, 0x27,   0,      0,     0,      //10- Status data register
-    "OUT_X_L",             0, 0x28,   0,      0,     0,      //11- Output registers
-    "OUT_X_H",             0, 0x29,   0,      0,     0,      //12- Output registers
-    "OUT_Y_L",             0, 0x2a,   0,      0,     0,      //13- Output registers
-    "OUT_Y_H",             0, 0x2b,   0,      0,     0,      //14- Output registers
-    "OUT_Z_L",             0, 0x2c,   0,      0,     0,      //15- Output registers
-    "OUT_Z_H",             0, 0x2d,   0,      0,     0,      //16- Output registers
+    "OUT_X_L",             0, 0x28,   0,      0,     0,      //11- Output register
+    "OUT_X_H",             0, 0x29,   0,      0,     0,      //12- Output register
+    "OUT_Y_L",             0, 0x2a,   0,      0,     0,      //13- Output register
+    "OUT_Y_H",             0, 0x2b,   0,      0,     0,      //14- Output register
+    "OUT_Z_L",             0, 0x2c,   0,      0,     0,      //15- Output register
+    "OUT_Z_H",             0, 0x2d,   0,      0,     0,      //16- Output register
     "FIFO_CTRL",           1, 0x2e,   0,      0,     0,      //17- FIFO controle register
     "FIFO_SAMPLES",        0, 0x2f,   0,      0,     0,      //18- Unread samples stored in FIFO
     "TAP_THS_X",           1, 0x30,   0,      0,     0,      //19- Tap thresholds
@@ -127,29 +105,36 @@ REGISTER lis2dw12_registers[] = {
 #define LIS2DW12_ABS_INT_CFG         34
 
 /*
- * Sensitivity sets in LP mode [ug]
+ * Sensitivity sets in all modes but low power mode 1
  */
-#define LIS2DW12_FS_2G_GAIN_LP		976
-#define LIS2DW12_FS_4G_GAIN_LP		1952
-#define LIS2DW12_FS_8G_GAIN_LP		3904
-#define LIS2DW12_FS_16G_GAIN_LP		7808
+#define LIS2DW12_FS_2G_GAIN_LP		0.976
+#define LIS2DW12_FS_4G_GAIN_LP		1.952
+#define LIS2DW12_FS_8G_GAIN_LP		3.904
+#define LIS2DW12_FS_16G_GAIN_LP		7.808
 
-/*
- * Sensitivity sets in HR mode [ug]
- */
-#define LIS2DW12_FS_2G_GAIN_HR		244
-#define LIS2DW12_FS_4G_GAIN_HR		488
-#define LIS2DW12_FS_8G_GAIN_HR		976
-#define LIS2DW12_FS_16G_GAIN_HR		1952
+#define LIS2DW12_ON			0x60
+#define LIS2DW12_SCONV			LIS2DW12_ON|0x0a
+#define LIS2DW12_CCONV			LIS2DW12_ON|0x02
+
 
 #define LIS2DW12_WHO_AM_I_ADDR		lis2dw12_registers[LIS2DW12_WHO_AM_I].reg_addr
 #define LIS2DW12_WHO_AM_I_DEF		lis2dw12_registers[LIS2DW12_WHO_AM_I].def
 
 #define READ_REGISTER(x)	        (lis2dw12_registers[x].value=lis2dw12_read_byte(lis2dw12_registers[x].reg_addr))
-#define REGISTER(x)	  	        lis2dw12_registers[x].value
-#define HIGH_POWER_EN	                (REGISTER(LIS2DW12_CTRL1) & 0x40)
 
-uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
+#define WRITE_REGISTER(x,y)      	lis2dw12_write_byte(lis2dw12_registers[x].reg_addr, y);\
+                                 	lis2dw12_registers[x].t =  time(0) 
+
+#define lis2dw12_on_or_off	 	(READ_REGISTER(LIS2DW12_CTRL1) & 0xf0)
+
+#define HIGH_POWER_EN	                (READ_REGISTER(LIS2DW12_CTRL1) & 0x04)
+
+#define TRIGGER_XYZ   lis2dw12_write_byte(lis2dw12_registers[LIS2DW12_CTRL3].reg_addr,0x03); \
+                      while( READ_REGISTER(LIS2DW12_CTRL3) & 0x01) /*wait*/;
+
+#define TRIGGER_TEMP  {uint8_t v=0; while( !(v & 0x40) ) v=READ_REGISTER(LIS2DW12_STATUS_DUP);}
+
+static uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
     i2c_handle_t my_handle=(i2c_handle_t)NULL;
     unsigned char value_read = 0;
 
@@ -161,10 +146,7 @@ uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
     return value_read;
 }
 
-#define WRITE_REGISTER(x,y)     lis2dw12_write_byte(lis2dw12_registers[x].reg_addr, y);\
-                                lis2dw12_registers[x].t =  time(0) 
-
-void lis2dw12_write_byte(uint8_t reg_addr, uint8_t value) {
+static void lis2dw12_write_byte(uint8_t reg_addr, uint8_t value) {
     i2c_handle_t my_handle = 0;
     uint8_t buffer_sent[2];
 
@@ -176,18 +158,40 @@ void lis2dw12_write_byte(uint8_t reg_addr, uint8_t value) {
 
 }
 
+static inline int uint82int(uint8_t ms, uint8_t ls, unsigned hp)
+{
+    // incomming data is 2 bytes, in 2's complement form, need to 
+    // convert it to a signed int, that is what al the shifting is about
+    int v = ((ls | ms << 8)<<((sizeof(int)-2)*8)) >> ((sizeof(int)-2)*8);
+
+    if (!hp)
+        return (long)v >> 4;
+    else
+        return (long)v >> 2;
+}
+
+void lis2dw12_regdump(void) {
+    for( int i=0; i<REG_SIZE; i++ ) 
+        printf("LIS2DW12 Register %s/0x%02X = 0x%02X\n", 
+                lis2dw12_registers[i].name, 
+                lis2dw12_registers[i].reg_addr, 
+                READ_REGISTER(i));
+}
+
 int lis2dw12_initialize(void) {
     int i, v;
     const time_t t = time(0);
 
-    for( i=REG_SIZE-1; i; i-- ) {
+    for( i=0; i<REG_SIZE; i++ ) {
         if( lis2dw12_registers[i].rw ) {
+            WRITE_REGISTER(i, lis2dw12_registers[i].def);
             if( dbg_flag & DBG_LIS2DW12 )
-                printf("-LIS2DW12: initialize %s (0x%02X) with 0x%02X\n",
+                printf("-LIS2DW12: %s/WRITE_REGISTER(0x%02X, 0x%02X) :: 0x%02X = READ_REGISTER(0x%02X)\n",
                          lis2dw12_registers[i].name,
                          lis2dw12_registers[i].reg_addr,
-                         lis2dw12_registers[i].def);
-            WRITE_REGISTER(i, lis2dw12_registers[i].def);
+                         lis2dw12_registers[i].def,
+                         READ_REGISTER(i),
+                         lis2dw12_registers[i].reg_addr);
             }
         }
 
@@ -203,28 +207,17 @@ uint8_t lis2dw12_getDeviceID(void) {
     return lis2dw12_read_byte(LIS2DW12_WHO_AM_I_ADDR);
 }
 
-void lis2dw12_regdump(void) {
-    int i,v;
-
-    for( i=0; i<REG_SIZE; i++ ) {
-        v=READ_REGISTER(i);
-        printf("LIS2DW12 Register %s = 0x%02X\n", lis2dw12_registers[i].name, v);
-        }
-}
-
 float lis2dw12_readTemp12( void ) {
     int i;
     uint8_t low=0, high=0, v=0;
     float tempC, tempF;
 
-    /* wait for temp data to be obtained */;
-    while( !(v & 0x40) ) 
-        v=READ_REGISTER(LIS2DW12_STATUS_DUP);
+    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_CCONV);
+    TRIGGER_TEMP;
 
     low = READ_REGISTER(LIS2DW12_OUT_T_L);
     high= READ_REGISTER(LIS2DW12_OUT_T_H);
-    i = convert_results(high, low, 1);
-if( i<0 ) printf("***** < 0 ::");
+    i = uint82int(high, low, HIGH_POWER_EN);
     tempC = (float)(i/16.0) + 25.0;
     tempF = (tempC*9.0)/5.0 + 32;
     if( dbg_flag & DBG_LIS2DW12 ){
@@ -232,6 +225,8 @@ if( i<0 ) printf("***** < 0 ::");
         printf("-LIS2DW12: tempC=%4.2f\n",tempC);
         printf("-LIS2DW12: tempF=%4.2f\n",tempF);
         }
+
+    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_SCONV);
     return tempF;
 }
 
@@ -239,14 +234,12 @@ int lis2dw12_readTemp8( void ) {
     uint8_t low=0, high=0;
     int tempC=0, tempF=0, v=0;
 
-    /* wait for temp data to be obtained */;
-    while( !(v & 0x40) ) 
-        v=READ_REGISTER(LIS2DW12_STATUS_DUP);
+    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_CCONV);
+    TRIGGER_TEMP;
 
     v = (int)READ_REGISTER(LIS2DW12_OUT_T);
     v = v<<((sizeof(int)-1)*8);
     v = v>>((sizeof(int)-1)*8);
-if( v<0 ) printf("***** < 0 ::");
     tempC = v+25;
     tempF = (tempC*9.0)/5.0 + 32;
     if( dbg_flag & DBG_LIS2DW12 ) {
@@ -254,17 +247,9 @@ if( v<0 ) printf("***** < 0 ::");
         printf("-LIS2DW12: tempC =%d\n",tempC);
         printf("-LIS2DW12: tempF =%d\n",tempF);
         }
-    return tempF;
-}
 
-void lis2dw12_onoff( uint8_t on ) {
-    uint8_t reg    = REGISTER(LIS2DW12_CTRL1) & 0x0f;
-    
-    if( on )
-        reg |= 0x40;
-    WRITE_REGISTER(LIS2DW12_CTRL1, reg);
-    if( dbg_flag & DBG_LIS2DW12 )
-        printf("-LIS2DW12:HIGH_POWER_EN=%s, CTRL1=0x%02X\n",on? "YES":"NO", reg);
+    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_SCONV);
+    return tempF;
 }
 
 
@@ -273,100 +258,37 @@ static int lis2dw12_get_acc_data( void )
     uint8_t status=0, high, low;
     int X, Y, Z;
 
-    while( !(status & 0x01) ) 
-        status = READ_REGISTER(LIS2DW12_STATUS);
-
-    if( dbg_flag & DBG_LIS2DW12 )
-        printf("-LIS2DW12:lis2dw12_get_acc_data, STATUS=0x02X\n", status);
+    TRIGGER_XYZ;
 
     low =READ_REGISTER(LIS2DW12_OUT_X_L);
     high=READ_REGISTER(LIS2DW12_OUT_X_H);
-    X=CONVRT_12BIT(high,low,HIGH_POWER_EN);
+    X=uint82int(high,low,HIGH_POWER_EN);
     ACCX = X * sensitivity;
     if( dbg_flag & DBG_LIS2DW12 )
-        printf("OUT_X_L=0x%02X, OUT_X_H=0x%02X, X=0x%04X, ACCX=%d\n",low,high,X,ACCX);
+        printf("OUT_X_L=0x%02X, OUT_X_H=0x%02X, X=0x%04X (%d), ACCX=%5.2f\n",low,high,X,X,ACCX);
 
     low =READ_REGISTER(LIS2DW12_OUT_Y_L);
     high=READ_REGISTER(LIS2DW12_OUT_Y_H);
-    Y=CONVRT_12BIT(high,low,HIGH_POWER_EN);
+    Y=uint82int(high,low,HIGH_POWER_EN);
     ACCY = Y * sensitivity;
     if( dbg_flag & DBG_LIS2DW12 )
-        printf("OUT_Y_L=0x%02X, OUT_Y_H=0x%02X, Y=0x%04X, ACCY=%d\n",low,high,Y,ACCY);
+        printf("OUT_Y_L=0x%02X, OUT_Y_H=0x%02X, Y=0x%04X (%d), ACCY=%5.2f\n",low,high,Y,Y,ACCY);
 
     low =READ_REGISTER(LIS2DW12_OUT_Z_L);
     high=READ_REGISTER(LIS2DW12_OUT_Z_H);
-    Z=CONVRT_12BIT(high,low,HIGH_POWER_EN);
+    Z=uint82int(high,low,HIGH_POWER_EN);
     ACCZ = Z * sensitivity;
     if( dbg_flag & DBG_LIS2DW12 )
-        printf("OUT_Z_L=0x%02X, OUT_Z_H=0x%02X, Z=0x%04X, ACCZ=%d\n",low,high,Z,ACCZ);
+        printf("HP=%d, OUT_Z_L=0x%02X, OUT_Z_H=0x%02X, Z=0x%04X (%d), ACCZ=%5.2f\n",HIGH_POWER_EN,low,high,Z,Z,ACCZ);
 
     return 0;
 }
-
-int lis2dw12_set_mode(uint8_t ctrl1, uint8_t ctrl6 )
-{
-    uint8_t reg, odr, mode, lp_mode, fs_mode;
-
-printf("in lis2dw12_set_mode\n");
-    reg    = READ_REGISTER(LIS2DW12_CTRL1);
-    odr    = ctrl1 & 0xf0;
-    mode   = ctrl1 & 0xc0;
-    lp_mode= ctrl1 & 3;
-    fs_mode= ctrl6 & 0x30;
-
-    if( !(ctrl1&0xf0) ) {                           //first see if we want to power-down the device
-        lis2dw12_onoff( 0 );
-        WRITE_REGISTER(LIS2DW12_CTRL1, reg&0x0f);
-        return 0;
-        }
-
-// ok we want to turn it on, what power-mode do we want and
-// what sensitivity factor do we need...
-
-    WRITE_REGISTER(LIS2DW12_CTRL1, ctrl1);
-    WRITE_REGISTER(LIS2DW12_CTRL6, ctrl6);
-
-    switch( fs_mode ) {
-        case 0x00: //2g
-            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_2G_GAIN_HR : LIS2DW12_FS_2G_GAIN_LP;
-            break;
-        case 0x10: //4g
-            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_4G_GAIN_HR : LIS2DW12_FS_4G_GAIN_LP;
-            break;
-        case 0x20: //8g
-            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_8G_GAIN_HR : LIS2DW12_FS_8G_GAIN_LP;
-            break;
-        case 0x30: //16g
-            sensitivity = HIGH_POWER_EN? LIS2DW12_FS_16G_GAIN_HR : LIS2DW12_FS_16G_GAIN_LP;
-            break;
-        }
-
-    return 0;
-}
-
-#define LIS2DW12_INT_DUR_STAP_DEFAULT	0x00
-#define LIS2DW12_INT_DUR_DTAP_DEFAULT	0x00
-#define LIS2DW12_WAKE_UP_THS_WU_DEFAULT	0x02
-
-int lis2dw12_configure_tap_event(int single_tap) {
-    if (single_tap) {
-        WRITE_REGISTER(LIS2DW12_INT_DUR, LIS2DW12_INT_DUR_STAP_DEFAULT);
-        WRITE_REGISTER(LIS2DW12_WAKE_UP_THS, LIS2DW12_WAKE_UP_THS_WU_DEFAULT);
-        }
-    else {
-        WRITE_REGISTER(LIS2DW12_INT_DUR, LIS2DW12_INT_DUR_DTAP_DEFAULT);
-        WRITE_REGISTER(LIS2DW12_WAKE_UP_THS, (0x80|LIS2DW12_WAKE_UP_THS_WU_DEFAULT));
-        }
-
-    return 0;
-}
-
 
 void lis2dw12_timer_task(size_t timer_id, void * user_data) 
 {
     uint8_t status = READ_REGISTER(LIS2DW12_STATUS);
 
-    printf("        Status Register: 0x%04X\n",status);
+//    printf("        Status Register: 0x%04X\n",status);
     if (status & 0x10)                                  //double tap occured
         printf("                   : Double Tap occured\n");
 
@@ -379,10 +301,7 @@ void lis2dw12_timer_task(size_t timer_id, void * user_data)
     if (status & 0x02)                                  //free fall event occured
         printf("                   : Free Fall occured\n");
 
-    if (status & 0x01) {                                //data read event occured
-        lis2dw12_get_acc_data();
-        printf("  XYZ data Avaiable: X=%d, Y=%d, Z=%d\n", ACCX, ACCY, ACCZ);
-        }
-
+    lis2dw12_get_acc_data();
+    printf("  XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n", ACCX, ACCY, ACCZ);
 }
 

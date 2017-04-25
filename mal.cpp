@@ -83,6 +83,9 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
         return -2;
         }
 
+    if( dbg_flag & DBG_MAL )
+        printf("-MAL: send_mal_command sent (%d)= '%s'\n",strlen(json_cmd),json_cmd);
+
     if (write(client_socket, json_cmd, strlen(json_cmd)) < 0) {
         return -3;
         }
@@ -90,8 +93,12 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
     if (wait_resp) {
         char tresp[1024];                       
         int bytes_read = read(client_socket, tresp, sizeof(tresp)-1);
-        if (bytes_read <= 0 || bytes_read > len_json_resp)
+        if (bytes_read <= 0 || bytes_read > len_json_resp) {
+            printf("-MAL: socket read failed, bytes read = %d\n",bytes_read);
             return -4;
+            }
+        if( dbg_flag & DBG_MAL )
+            printf("-MAL: send_mal_command response (%d)= '%s'\n",bytes_read,tresp);
         memcpy(json_resp, tresp, bytes_read);
         }
     close(client_socket);
@@ -137,7 +144,7 @@ int start_data_service(void) {
 
 char * get_ipAddr(json_keyval *kv, int kvsize) {
     int  i, k;
-    char rstr[100];
+    char rstr[500];
     char jcmd[] = "{ \"action\" : \"get_wwan_ipv4_network_ip\" }";
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
@@ -179,12 +186,19 @@ char * getMALManVer(json_keyval *kv, int kvsize) {
 
 char * getModelID(json_keyval *kv, int kvsize) {
     int  i, k;
-    char rstr[100];
+    char rstr[200];
     char jcmd[] = "{ \"action\" : \"get_system_model_id\" }";
 
-    send_mal_command(jcmd, rstr, sizeof(rstr), true);
-    i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    i =send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    if (i<0) {
+        printf("send_mal_command='%s'\n",i);
+        return NULL;
+        }
+    else {
+        i = parse_maljson (rstr, kv, kvsize);
+        printf("(received %d key/value pairs):\n", i);
+        return kv[3].value;    
+        }
 }
 
 char * getIMEI(json_keyval *kv, int kvsize) {
@@ -261,16 +275,22 @@ int get_wwan_status( json_keyval *kv, int kvsize) {
 
 char *getGPSconfig(json_keyval *kv, int kvsize) {
     int  i;
-    char rstr[100];
+    char rstr[150];
     char jcmd[] = "{ \"action\" : \"get_loc_config\" }";
 
     memset(rstr,0x00,sizeof(rstr));
-    send_mal_command(jcmd, rstr, sizeof(rstr), true);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: get_loc_config returned '%s'\n",rstr);
-//    i = parse_maljson (rstr, kv, kvsize);
-//    return kv[3].value;    
-return NULL;
+    i = send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    if( i<0 ) {
+        printf("-MAL: in get_loc_config, send_mal_command failed - %d\n",i);
+        return NULL;
+        }
+    else {
+        if( dbg_flag & DBG_MAL )
+            printf("-MAL: get_loc_config returned '%s'\n",rstr);
+printf("rstr=%s, kvsize=%d\n",rstr,kvsize);
+        i = parse_maljson (rstr, kv, kvsize);
+        return kv[3].value;    
+        }
 }
 
 
@@ -283,43 +303,43 @@ char *getGPSlocation(json_keyval *kv, int kvsize) {
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     if( dbg_flag & DBG_MAL )
         printf("-MAL: get_loc_position_info returned '%s'\n",rstr);
-//    i = parse_maljson (rstr, kv, kvsize);
-//    return kv[3].value;    
-return NULL;
+    i = parse_maljson (rstr, kv, kvsize);
+    return kv[3].value;    
 }
 
 
 int enableGPS(void) {
     char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"true\" } }";
+    int i = send_mal_command(jcmd, NULL, 0, false);
     if( dbg_flag & DBG_MAL )
-        printf("-MAL: send '%s'\n",jcmd);
-    send_mal_command(jcmd, NULL, 0, false);
+        printf("-MAL: send '%s' - returned %d\n",jcmd,i);
     return 0;
 }
 
 int disableGPS(void) {
     char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"false\" } }";
+
+    send_mal_command(jcmd, NULL, 0, false);
     if( dbg_flag & DBG_MAL )
         printf("-MAL: send '%s'\n",jcmd);
-    send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
 
 int setGPSmode(int m) {
     char jcmd[100];
     sprintf(jcmd, "{ \"action\": \"set_loc_mode\", \"args\": { \"mode\": %d } }", m);;
+    send_mal_command(jcmd, NULL, 0, false);
     if( dbg_flag & DBG_MAL )
         printf("-MAL: send '%s'\n",jcmd);
-    send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
 
 int setGPS_NMEAFilter( int f ) {
     char jcmd[100];
     sprintf(jcmd, "{ \"action\": \"set_loc_nmea_filter\", \"args\": { \"mode\": %d } }", f);;
+    send_mal_command(jcmd, NULL, 0, false);
     if( dbg_flag & DBG_MAL )
         printf("-MAL: send '%s'\n",jcmd);
-    send_mal_command(jcmd, NULL, 0, false);
     return 0;
 }
 

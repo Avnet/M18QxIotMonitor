@@ -133,14 +133,6 @@ int main(int argc, char *argv[])
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
 
-    c=lis2dw12_initialize();
-    if( dbg_flag & DBG_LIS2DW12 )
-        printf("-LIS2DW12: lis2dw12_initialize() = %d\n",c);
-
-    c=lis2dw12_getDeviceID();
-    if( dbg_flag & DBG_LIS2DW12 )
-        printf("-LIS2DW12: lis2dw12_getDeviceID()= 0x%02X\n",c);
-
     if( ft_mode ) {
         command_facttest(argc, argv);
         app_exit();
