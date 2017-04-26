@@ -24,7 +24,7 @@ char *getOperatingMode(json_keyval *kv, int kvsize);
 int get_wwan_status( json_keyval *kv, int kvsize);
 
 char *getGPSconfig(json_keyval *kv, int kvsize);
-char *getGPSlocation(json_keyval *kv, int kvsize);
+int getGPSlocation(json_keyval *kv, int kvsize);
 int enableGPS(void);
 int disableGPS(void);
 int setGPSmode(int m);

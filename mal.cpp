@@ -275,7 +275,7 @@ int get_wwan_status( json_keyval *kv, int kvsize) {
 
 char *getGPSconfig(json_keyval *kv, int kvsize) {
     int  i;
-    char rstr[150];
+    char rstr[300];
     char jcmd[] = "{ \"action\" : \"get_loc_config\" }";
 
     memset(rstr,0x00,sizeof(rstr));
@@ -284,62 +284,74 @@ char *getGPSconfig(json_keyval *kv, int kvsize) {
         printf("-MAL: in get_loc_config, send_mal_command failed - %d\n",i);
         return NULL;
         }
-    else {
-        if( dbg_flag & DBG_MAL )
-            printf("-MAL: get_loc_config returned '%s'\n",rstr);
-printf("rstr=%s, kvsize=%d\n",rstr,kvsize);
-        i = parse_maljson (rstr, kv, kvsize);
-        return kv[3].value;    
-        }
-}
-
-
-char *getGPSlocation(json_keyval *kv, int kvsize) {
-    int  i;
-    char rstr[100];
-    char jcmd[] = "{ \"action\" : \"get_loc_position_info\" }";
-
-    memset(rstr,0x00,sizeof(rstr));
-    send_mal_command(jcmd, rstr, sizeof(rstr), true);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: get_loc_position_info returned '%s'\n",rstr);
-    i = parse_maljson (rstr, kv, kvsize);
+    parse_maljson (rstr, kv, kvsize);
     return kv[3].value;    
 }
 
 
+int getGPSlocation(json_keyval *kv, int kvsize) {
+    int  i;
+    char rstr[300];
+    char jcmd[] = "{ \"action\" : \"get_loc_position_info\" }";
+
+    memset(rstr,0x00,sizeof(rstr));
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    if( i< 0 ) {
+        printf("-MAL: getGPSlocation error (%d)\n",i);
+        return 0;
+        }
+    return parse_maljson (rstr, kv, kvsize);
+}
+
+
 int enableGPS(void) {
-    char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"true\" } }";
-    int i = send_mal_command(jcmd, NULL, 0, false);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: send '%s' - returned %d\n",jcmd,i);
+    char rstr[300];
+    char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": true } }";
+    int i = send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    if( i<0 ) {
+        printf("-MAL: enableGPS error (%d); ",i);
+        printf("returned '%s'\n",rstr);
+        return i;
+        }
     return 0;
 }
 
 int disableGPS(void) {
-    char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": \"false\" } }";
+    int  i;
+    char rstr[300];
+    char jcmd[] = "{ \"action\": \"set_loc_config\", \"args\": { \"loc\": false } }";
 
-    send_mal_command(jcmd, NULL, 0, false);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: send '%s'\n",jcmd);
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), false);
+    if( i<0 ) {
+        printf("-MAL: disableGPS error (%d) returned %s\n",i,rstr);
+        return i;
+        }
     return 0;
 }
 
 int setGPSmode(int m) {
+    int i;
     char jcmd[100];
+    char rstr[300];
     sprintf(jcmd, "{ \"action\": \"set_loc_mode\", \"args\": { \"mode\": %d } }", m);;
-    send_mal_command(jcmd, NULL, 0, false);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: send '%s'\n",jcmd);
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), false);
+    if( i<0 ) {
+        printf("-MAL: setGPSmode error (%d) returned %s\n",i,rstr);
+        return i;
+        }
     return 0;
 }
 
 int setGPS_NMEAFilter( int f ) {
+    int i;
     char jcmd[100];
+    char rstr[300];
     sprintf(jcmd, "{ \"action\": \"set_loc_nmea_filter\", \"args\": { \"mode\": %d } }", f);;
-    send_mal_command(jcmd, NULL, 0, false);
-    if( dbg_flag & DBG_MAL )
-        printf("-MAL: send '%s'\n",jcmd);
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), false);
+    if( i<0 ) {
+        printf("-MAL: setGPS_NMEAFilter error (%d) returned %s\n",i,rstr);
+        return i;
+        }
     return 0;
 }
 

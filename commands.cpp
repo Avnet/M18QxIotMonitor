@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <functional>
-
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -669,23 +669,72 @@ int command_headless(int argc, const char * const * argv )
 }
 
 
-int command_gps(int argc, const char * const * argv )
+unsigned int ascii_to_epoch(char *epoch_ascii)
 {
-    json_keyval om[8];
+    unsigned long long int lepoch=0;
+    unsigned long long int tens=1;
+    unsigned int epoch;
+    int asciilen, nbr;
+    for( asciilen=strlen(epoch_ascii)-1; asciilen>=0; asciilen-- ) {
+        nbr = epoch_ascii[asciilen] - 0x30;
+        lepoch += (tens * nbr);
+        tens *= 10;
+        }
+    return lepoch/1000;
+}
+
+int command_gps(int argc, const char * const * argv )
+{   
+    struct tm gps_time;
+    json_keyval om[12];
+    int k, done, i, intfmt, strfmt;
     const char *mode[] = {
         "2-MS-based mode",
         "3-MS assisted mode",
         "4-Standalone mode" };
 
-    printf("calling gps stuff\n");
-
+    printf("Getting GPS information...\n");
+    setGPSmode(4);
+//    setGPS_NMEAFilter( 0xffff );
+    getGPSconfig(om,sizeof(om));
     enableGPS();
-sleep(2);
-
-//    getGPSlocation(om,sizeof(om)/sizeof(char*));
-//    setGPSmode(4);
-//    setGPS_NMEAFilter( 0xff );
-    getGPSconfig(om,  sizeof(om));
+    done = 0;
+    while( !done ) {
+        k=i=getGPSlocation(om,sizeof(om));
+        done = atoi(om[3].value);
+        for( i=1, intfmt=strfmt=0; i<k; i++ ) {
+            if( !strcmp(om[i].key,"loc_status") )
+                printf("Status: %s\n",atoi(om[i].value)?"COMPLETED\n":"IN PROGRESS");
+            else if( !strcmp(om[i].key,"latitude") )
+                printf(" latitude: %f\n",atof(om[i].value));
+            else if( !strcmp(om[i].key,"longitude") )
+                printf("longitude: %f\n",atof(om[i].value));
+            else if( !strcmp(om[i].key,"timestamp") ) {
+                char buf[80];
+                time_t rawtime = ascii_to_epoch(om[i].value);
+                struct tm *ts = localtime(&rawtime);
+                strftime(buf, sizeof(buf), "  Time is: %a %d-%m-%Y %H:%M:%S %Z", ts);
+                puts(buf);
+                }
+            else if( !strcmp(om[i].key,"altitude") )
+                printf(" altitude: %d\n",atoi(om[i].value));
+            else if( !strcmp(om[i].key,"speed") )
+                printf("    speed: %d\n",atoi(om[i].value));
+            else if( !strcmp(om[i].key,"accuracy") )
+                printf(" accuracy: %d\n",atoi(om[i].value));
+            else if( !strcmp(om[i].key,"errno") ) {
+                if( atoi(om[i].value) )
+                    printf("GPS ERROR! %d\n",atoi(om[i].value));
+                }
+            else if( !strcmp(om[i].key,"errmsg") ) {
+                if( strcmp(om[i].value,"<null>") )
+                    printf("GPS ERROR MESSAGE: %s\n",om[i].value);
+                }
+            else
+                printf("(%2d) KEY=%s ; VALUE=%s\n",i,om[i].key,om[i].value);
+            }
+        sleep(5);
+        }
     disableGPS();
 
 }
@@ -911,10 +960,6 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
 
     do {
         lis2dw12_timer_task((size_t)0, (void *)argv);
-//        temp  = hts221_getTemp();
-//        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
-//        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-//        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
         sleep(delay);
         }
     while (--repeats);
