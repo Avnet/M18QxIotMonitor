@@ -46,7 +46,7 @@
 #define KEY_GS  29  /**< ^] Group separator */
 #define KEY_RS  30  /**< ^^ Record separator, block-mode terminator */
 #define KEY_US  31  /**< ^_ Unit separator */
-
+#define KEY_semi 59 /**< ;  End of command string */
 #define KEY_DEL 127 /**< Delete (not a real control character...) */
 
 #define IS_CONTROL_CHAR(x) ((x)<=31)

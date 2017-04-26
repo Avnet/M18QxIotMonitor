@@ -578,6 +578,9 @@ void microrl_insert_char (microrl_t * pThis, int ch)
 #endif
 			break;
 			//-----------------------------------------------------
+                        case KEY_semi:
+				new_line_handler(pThis);
+			break;
 			case KEY_NAK: // ^U
 					while (pThis->cursor > 0) {
 					microrl_backspace (pThis);
