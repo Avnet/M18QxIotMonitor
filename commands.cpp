@@ -754,7 +754,7 @@ int command_adc(int argc, const char * const * argv )
 int command_facttest(int argc __attribute__((unused)), const char *const *argv)
 {
     extern struct timespec key_press, key_release, keypress_time;
-    extern volatile gpio_level_t button_press;
+    extern volatile int button_press;
     extern GPIOPIN_IN gpio_input;
     extern gpio_handle_t user_key, red_led, green_led, blue_led;
     int i, done;
@@ -788,21 +788,23 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     gpio_init( GPIO_PIN_92,  &red_led );
     gpio_init( GPIO_PIN_101, &green_led );
     gpio_init( GPIO_PIN_102, &blue_led );
-    gpio_init( GPIO_PIN_98,  &user_key );  //SW3
 
     gpio_dir(red_led,   GPIO_DIR_OUTPUT);
     gpio_dir(green_led, GPIO_DIR_OUTPUT);
     gpio_dir(blue_led,  GPIO_DIR_OUTPUT);
     
-    button_press = (gpio_level_t)0;
-    gpio_dir(user_key, GPIO_DIR_INPUT);
-    gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
+    if( (i=gpio_init( GPIO_PIN_98,  &user_key)) != 0 )
+        printf("ERROR: unable to initialize user key gpio. (%d)\n",i);
+    if( (i=gpio_dir(user_key, GPIO_DIR_INPUT)) != 0 )
+        printf("ERROR: can't set user key as input. (%d)\n",i);
 
-    done = 0;
-    while (!done ) {
+    button_press = 0;
+    if( (i=gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback)) != 0)
+        printf("ERROR: can't set user key as interrupt input. (%d)\n",i);
+
+    while (!button_press ) {
         lis2dw12_timer_task((size_t)0, (void *)argv);
         sleep(1);
-        done = button_press;
         }
 
 //Test: User Push-Button/LED test

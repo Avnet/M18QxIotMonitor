@@ -47,7 +47,7 @@ typedef struct led_val_t {
 #define FLOW_SERVER      "run-east.att.io"
 
 gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
-volatile gpio_level_t button_press=0, last_val=0;
+volatile int button_press=0;
 struct timespec key_press, key_release, keypress_time;
 
 
@@ -98,9 +98,10 @@ void set_color( char *color )
 int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     gpio_level_t the_val=0;
-    
-	if (pin_name != GPIO_PIN_98)
-		return 0;
+
+	if (pin_name != GPIO_PIN_98) {
+            return 0;
+            }
 
         if( !button_press ) {
             button_press = 1;
