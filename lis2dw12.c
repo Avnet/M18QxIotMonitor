@@ -9,6 +9,7 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <math.h>
 
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
@@ -284,8 +285,43 @@ static int lis2dw12_get_acc_data( void )
     return 0;
 }
 
+int smothed_xyz( float *x, float *y, float *z )
+{
+    static int cnt=0;
+    static float avgX=0, avgY=0, avgZ=0;
+    int pos_changed;
+
+    if (cnt<2)
+        cnt++;
+    
+    avgX += *x;
+    avgX /= cnt;
+    avgY += *y;
+    avgY /= cnt;
+    avgZ += *z;
+    avgZ /= cnt;
+
+//    printf("avgX=%f,x=%f,xpos=%f, avgY=%f,y=%f,ypos=%f, avgZ=%f,z=%f,zpos=%f\n\n", 
+//            avgX,*x,abs(avgX)-abs(*x), avgY,*y,abs(avgY)-abs(*y), avgZ,*z,abs(avgZ)-abs(*z));
+    pos_changed = (((abs(avgX)-abs(*x)) > 50) || ((abs(avgY)-abs(*y)) > 50) || ((abs(avgZ)-abs(*z)) > 50)); 
+    if( pos_changed ) {
+        avgX = 0;
+        avgY = 0;
+        avgZ = 0;
+        cnt = 0;
+        }
+    else {
+        *x = avgX;
+        *y = avgY;
+        *z = avgZ;
+        }
+
+    return pos_changed;
+}
+
 void lis2dw12_timer_task(size_t timer_id, void * user_data) 
 {
+    static int c=0;
     uint8_t status = READ_REGISTER(LIS2DW12_STATUS);
 
 //    printf("        Status Register: 0x%04X\n",status);
@@ -302,6 +338,15 @@ void lis2dw12_timer_task(size_t timer_id, void * user_data)
         printf("                   : Free Fall occured\n");
 
     lis2dw12_get_acc_data();
-    printf("  XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n", ACCX, ACCY, ACCZ);
+
+    if (smothed_xyz(&ACCX, &ACCY, &ACCZ)) {
+        float rad = sqrt(ACCX*ACCX+ACCY*ACCY+ACCZ*ACCZ);
+        float inc = acos(ACCZ/rad)*(180/3.1415);
+        float az  = atan(ACCY/ACCX)*(180/3.1415);
+        printf("\n\nChanged positon!\n");
+        printf("%3d) XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n"
+               "    Polar Coordinates: radius=%5.2f inclination=%5.2f azimuth=%5.2f\n\n", 
+           c++, ACCX, ACCY, ACCZ, rad, inc, az);
+        }
 }
 
