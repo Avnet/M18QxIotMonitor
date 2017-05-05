@@ -350,3 +350,14 @@ void lis2dw12_timer_task(size_t timer_id, void * user_data)
         }
 }
 
+void lis2dw12_ot_acc_data(void)
+{
+    lis2dw12_get_acc_data();
+    smothed_xyz(&ACCX, &ACCY, &ACCZ);
+    float rad = sqrt(ACCX*ACCX+ACCY*ACCY+ACCZ*ACCZ);
+    float inc = acos(ACCZ/rad)*(180/3.1415);
+    float az  = atan(ACCY/ACCX)*(180/3.1415);
+    printf("XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n"
+           "Polar Coordinates: radius=%5.2f inclination=%5.2f azimuth=%5.2f\n\n", 
+           ACCX, ACCY, ACCZ, rad, inc, az);
+}

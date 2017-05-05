@@ -35,6 +35,12 @@
 #include <sys/syscall.h>
 #include <sys/socket.h>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include "mal.hpp"
+
 #include <string>
 
 #include "MyBuffer.hpp"
@@ -113,6 +119,13 @@ int main(int argc, char *argv[])
            }
 
     
+    c=start_data_service();
+    while ( c < 0 ) {
+        printf("WAIT: starting WNC Data Module (%d)\n",c);
+        sleep(10);
+        c=start_data_service();
+        }
+
     binary_io_init();
 
     c=lis2dw12_initialize();
@@ -152,7 +165,7 @@ int main(int argc, char *argv[])
         c=getchar();
         microrl_insert_char(prl, c);
     }
- }
+}
 
 
 //

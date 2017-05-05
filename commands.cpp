@@ -77,9 +77,7 @@ const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {
-  max_moncommands, ";",   
-     "A ';' denotes that the rest of the line is a comment and not to be executed.",            NULL,
-  0, ";",           
+  max_moncommands, ";",           
      "GPIO's currently supported: GPIO_PIN_92, GPIO_PIN_101, GPIO_PIN_102\n",                   NULL,
   0, "?",           
      "?             Displays this help screen",                                                 command_help,
@@ -102,9 +100,11 @@ const cmd_entry mon_command_table[] =
   0, "ADC",         
      "ADC           Read ADC                                                            ",      command_adc,
   0, "I2CPEEK",     
-     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus",command_i2cpeek,
+     "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus\n"
+     "             LIS2DW12 <dev> =19; HTS221 <dev>=5F;                                         ",command_i2cpeek,
   0, "I2CPOKE",     
-     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus",command_i2cpoke,
+     "I2CPOKE <dev> <reg> <b1> <b2> <b3> <b4> <b5> <b6> write up to 6 bytes to <reg> on I2C bus\n"
+     "             LIS2DW12 <dev> =19; HTS221 <dev>=5F;                                         ",command_i2cpoke,
   0, "DEBUG",       
      "DEBUG X V     Set or Clear a debug flag X=set or clr, V = flag to set or clear",          command_dbg,
   0, "WNC",         
@@ -209,19 +209,22 @@ char ** complet (int argc, const char * const * argv)
 
 void print_banner(void) {
 
-//  my_puts("\033[2J");
-  my_puts("----------------------------------------------------------------------------");
-  my_puts("      _____           Copyright (c) 2017 Avnet");
-  my_puts("     *     *");
-  my_puts("    *____   *");
-  my_puts("   * *===*   *==*");
-  my_puts("  *___*===*___**");
-  my_puts("       *======*");
-  my_puts("        *====*");
-  my_puts(" AVNET - AT&T Global Module IoT Monitor");
-  my_puts(" Version 00.99 // 01-31/2017");
-  my_puts(" Hardware Supported: WNC M18Qx Cellular Data Module");
-  my_puts("----------------------------------------------------------------------------\n");
+  printf("----------------------------------------------------------------------------\n");
+  printf("\n");
+  printf("       ** **        **          **  ****      **  **********  ********** ®\n");
+  printf("      **   **        **        **   ** **     **  **              **\n");
+  printf("     **     **        **      **    **  **    **  **              **\n");
+  printf("    **       **        **    **     **   **   **  *********       **\n");
+  printf("   **         **        **  **      **    **  **  **              **\n");
+  printf("  **           **        ****       **     ** **  **              **\n");
+  printf(" **  .........  **        **        **      ****  **********      **\n");
+  printf("    ...........\n");
+  printf("                                    Reach Further\n");
+  printf("\n");
+  printf(" AVNET - AT&T Global Module IoT Monitor\n");
+  printf(" Version 00.99 // 05-3/2017\n");
+  printf(" Hardware Supported: WNC M18Qx Cellular Data Module\n");
+  printf("----------------------------------------------------------------------------\n");
   
   return ;
 }
@@ -234,18 +237,20 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
     char *action=NULL, *flag=NULL;
     int a=0, done=0, idx;
 
+    printf("Debug flag currently = 0x%04X.\n", dbg_flag);
+
     if( argc < 3 ) {
-        printf("Possible flags are:(0x%04X)\n",dbg_flag);
-        printf("  CURL - display information about CURL operations\n");
-        printf("  FLOW - display information about CURL operations\n");
-        printf("  M2X - display informatioin about\n");
-        printf("  TIMER - display informatioin about\n");
-        printf("  LIS2DW12 - display informatioin about\n");
-        printf("  HTS221 - display informatioin about\n");
-        printf("  BINIO - display informatioin about\n");
-        printf("  MAL -  display information to/from the MAL\n");
-        printf("  I2C -  display information on the I2C bus\n");
-        printf("  SPI -  display information on the SPI bus\n");
+        printf("Possible debug flags and their current setting is:\n",dbg_flag);
+        printf("  CURL     (%s) - display information about CURL operations\n",dbg_flag&DBG_CURL?"  SET  ":"NOT SET");
+        printf("  FLOW     (%s) - display information about CURL operations\n",dbg_flag&DBG_FLOW?"  SET  ":"NOT SET");
+        printf("  M2X      (%s) - display informatioin about\n",dbg_flag&DBG_M2X?"  SET  ":"NOT SET");
+        printf("  TIMER    (%s) - display informatioin about\n",dbg_flag&DBG_MYTIMER?"  SET  ":"NOT SET");;
+        printf("  LIS2DW12 (%s) - display informatioin about\n",dbg_flag&DBG_LIS2DW12?"  SET  ":"NOT SET");
+        printf("  HTS221   (%s) - display informatioin about\n",dbg_flag&DBG_HTS221?"  SET  ":"NOT SET");;
+        printf("  BINIO    (%s) - display informatioin about\n",dbg_flag&DBG_BINIO?"  SET  ":"NOT SET");
+        printf("  MAL      (%s) - display information to/from the MAL\n",dbg_flag&DBG_MAL?"  SET  ":"NOT SET");
+        printf("  I2C      (%s) - display information on the I2C bus\n",dbg_flag&DBG_I2C?"  SET  ":"NOT SET");
+        printf("  SPI      (%s) - display information on the SPI bus\n",dbg_flag&DBG_SPI?"  SET  ":"NOT SET");
         return 0;
         }
 
@@ -398,11 +403,10 @@ int command_help(int argc, const char * const * argv )
     cmd_entry *tptr = current_table;
 
     my_puts(((tptr[0]).help_str));
-    my_puts(((tptr[1]).help_str));
     my_puts("Command          Description");
     my_puts("============= ========================================================================\n");
 
-    for( i=2; i<max; i++ )
+    for( i=1; i<max; i++ )
         my_puts(((tptr[i]).help_str));
 
     my_puts(" ");
@@ -470,8 +474,9 @@ void dump_keyvalues(json_keyval *pkv, int siz)
         printf("#%02d: {%s, %s}\n", k, pkv[k].key, pkv[k].value);
 }
 
-int command_WNCInfo(int, char const* const*)
+int command_WNCInfo(int x, char const* const* p)
 {
+    int i;
     json_keyval om[4];
     const char *om_str[] = {
         "0-Online",
@@ -481,10 +486,14 @@ int command_WNCInfo(int, char const* const*)
         "4-Resetting",
         "5-Shutting down" };
 
-    printf(" WNC Information ");
-    start_data_service();
+    i=start_data_service();
+    while ( i < 0 ) {
+        printf("WAIT: starting WNC MAL Interface (%d)\n",i);
+        sleep(10);
+        i=start_data_service();
+        }
 
-
+    printf(" WNC Information\n");
     mySystem.model=getModelID(om, sizeof(om));
     printf("              WNC Model: %s\n",mySystem.model.c_str());
     mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
@@ -583,7 +592,7 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
 #define CTOF(x)  ((x)*(float)1.8+32) 
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
-    int repeats, delay = 0;
+    int k=1, repeats, delay = 0;
     float temp;
 
     if( argc == 3 ) {
@@ -595,15 +604,25 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     else
         repeats = 1;
 
-    printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
-    do {
-        temp  = hts221_getTemp();
-        printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
-        printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
-        sleep(delay);
+    printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+
+    if( repeats > 1 ) {
+        printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
+        do {
+            temp  = hts221_getTemp();
+            printf("\nReading #%d:\n",k++);
+            printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+            printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+            sleep(delay);
+            }
+        while (--repeats);
         }
-    while (--repeats);
+    else {
+        temp  = hts221_getTemp();
+        printf("\n HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+        }
+        
 }
 
 //dev reg nbr_of_bytes
@@ -760,9 +779,10 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     int i, done;
     float temp  = hts221_getTemp();
 
+    printf("Perform Factory Test Sequence.\n");
 //Test: Display WNC part info and SIM card info
 //Test: Display LTE RSSI information
-    command_WNCInfo(0,NULL);
+    command_WNCInfo(0,argv);
     printf("\n");
     command_WWANStatus(0,NULL);
     printf("\n");
@@ -906,7 +926,7 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
 //    MAX31855 max;
 
 //    max.init();
-//    printf("Testing MAX31855.\n");
+    printf("Testing MAX31855 not yet implemented.\n");
 //    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
 //    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
 //    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
@@ -941,7 +961,7 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
 int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv )
 {
     void lis2dw12_timer_task(size_t timer_id, void * user_data);
-    int repeats, delay = 0;
+    int k=0, repeats, delay = 0;
     float temp;
 
     printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
@@ -957,13 +977,17 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
     else
         repeats = 1;
 
-    if (repeats > 1 )    
-        printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
-
-    do {
-        lis2dw12_timer_task((size_t)0, (void *)argv);
-        sleep(delay);
+    if (repeats > 1 ) {
+        k = 1;
+        printf("send %d mesurments with %d second delay between each measurment.",repeats,delay);
+        do {
+            printf("\nReading #%d:\n",k++);
+            lis2dw12_ot_acc_data();
+            sleep(delay);
+            }
+        while (--repeats);
         }
-    while (--repeats);
+    else
+       lis2dw12_ot_acc_data();
 }
 

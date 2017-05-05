@@ -115,8 +115,7 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
 
 int start_data_service(void) {
     char jcmd[] = "{ \"action\": \"set_network_connection_mode\", \"args\": { \"manual_mode\": 0 } }";
-    send_mal_command(jcmd, NULL, 0, false);
-    return 0;
+    return send_mal_command(jcmd, NULL, 0, false);
 
 
 //    struct json_object *jobj_cmd = json_object_new_object(), 
