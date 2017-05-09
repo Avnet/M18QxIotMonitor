@@ -263,6 +263,13 @@ int command_dbg(int argc __attribute__((unused)), const char * const * argv )
     flag   = (char*)argv[(idx=2)];
 
     while( a && action != NULL && flag != NULL && idx < argc ) {
+        if( !strcmp(strupr(flag),"DBG_DEMO") ) {
+            done=1;
+            if( a == 1)
+                dbg_flag |= DBG_DEMO;
+            else
+                dbg_flag &= ~DBG_DEMO;
+            }
         if( !strcmp(strupr(flag),"CURL") ) {
             done=1;
             if( a == 1)
@@ -933,26 +940,35 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
 //    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
 //    printf("Errors encountered = 0x%02X\n",max.readError());
   
-    spi_handle_t my_spi=0;
+    spi_handle_t my_spiI=0, my_spiII=0;
     uint32_t txb, rxb;
     int i;
 
-    i=spi_bus_init(SPI_BUS_II, &my_spi);
-    printf("spi_bus_init()=%d\n",i);
+    i=spi_bus_init(SPI_BUS_II, &my_spiII);
+    while( i< 0){
+        printf("spi_bus_init(SPI_BUS_II)=%d\n",i);
+        i=spi_bus_init(SPI_BUS_II, &my_spiII);
+        sleep(2);
+        }
+
+    printf("spi_bus_init(SPI_BUS_I)=%d\n",i);
+    i=spi_bus_init(SPI_BUS_II, &my_spiII);
+    printf("spi_bus_init(SPI_BUS_II)=%d\n",i);
 
 // CPOL - Sets the data clock to be idle when high if set to 1, idle when low if set to 0
 // CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
 // 32 bits per word
-    i=spi_format(my_spi, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
+    i=spi_format(my_spiI, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
     printf("spi_format()=%d\n",i);
 
-    i=spi_frequency(my_spi, 4000000);
+    i=spi_frequency(my_spiI, 4000000);
     printf("spi_frequency()=%d\n",i);
 
-    i=spi_transfer(my_spi, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t));
+    i=spi_transfer(my_spiI, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t));
     printf("spi_transfer()=%d\n",i);
 
-    spi_bus_deinit(&my_spi);
+    spi_bus_deinit(&my_spiI);
+    spi_bus_deinit(&my_spiII);
 
     return 0;
 }
@@ -982,6 +998,8 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
         printf("send %d mesurments with %d second delay between each measurment.",repeats,delay);
         do {
             printf("\nReading #%d:\n",k++);
+            printf("LIS2DW12 12-bit temp: %5.2f\n", lis2dw12_readTemp12());
+            printf("LIS2DW12  8-bit temp: %d\n\n\n", lis2dw12_readTemp8());
             lis2dw12_ot_acc_data();
             sleep(delay);
             }

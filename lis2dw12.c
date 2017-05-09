@@ -361,3 +361,25 @@ void lis2dw12_ot_acc_data(void)
            "Polar Coordinates: radius=%5.2f inclination=%5.2f azimuth=%5.2f\n\n", 
            ACCX, ACCY, ACCZ, rad, inc, az);
 }
+
+char **lis2dw12_m2x(void)
+{
+    static char xyz_data[3][16];
+    static char *data[] = {
+        xyz_data[0],
+        xyz_data[1],
+        xyz_data[2]
+        };
+
+    lis2dw12_get_acc_data();
+    smothed_xyz(&ACCX, &ACCY, &ACCZ);
+
+    memset(xyz_data, 0, sizeof(xyz_data));
+
+    sprintf(xyz_data[0], "%f", ACCX);
+    sprintf(xyz_data[1], "%f", ACCY);
+    sprintf(xyz_data[2], "%f", ACCZ);
+
+    return data;
+}
+

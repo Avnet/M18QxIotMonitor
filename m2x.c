@@ -9,6 +9,7 @@
 #include "m2x.h"
 #include "hts221.h"
 #include "mytimer.h"
+#include "lis2dw12.h"
 
 #include "mal.hpp"
 
@@ -179,6 +180,63 @@ void set_m2xColor(char *color)
     m2x_create_stream(device_id, api_key, "rgb");
 
     m2x_update_color_value (device_id, api_key, "rgb", color);		
+
+    printf("\n");
+}
+
+void do_lis2dw_temp(int f, void *val)
+{
+    adc_handle_t my_adc=(adc_handle_t)NULL;
+    float adc_voltage;
+    char str_val[16];
+    char * float_stream_name = "LIS2DW12_TEMP";
+    char * int_stream_name = "LIS2DW8";
+    
+    memset(str_val, 0, sizeof(str_val));
+    start_data_service();
+    if( f ) {                 //is the 12 bit floating value
+        if( dbg_flag & DBG_M2X ) 
+            printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                    device_id, api_key, float_stream_name);
+        m2x_create_stream(device_id, api_key, float_stream_name);
+        sprintf(str_val, "%f", *((float*)val));
+        m2x_update_stream_value(device_id, api_key, float_stream_name, str_val);		
+        }
+    else {
+        if( dbg_flag & DBG_M2X ) 
+            printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                    device_id, api_key, int_stream_name);
+        m2x_create_stream(device_id, api_key, int_stream_name);
+        sprintf(str_val, "%d", *((int*)val));
+        m2x_update_stream_value(device_id, api_key, int_stream_name, str_val);		
+        }
+
+    printf("\n");
+}
+
+void do_lis2dw_xyz(char **ptr)
+{
+    char * Xstream_name = "LIS2DW12_x";
+    char * Ystream_name = "LIS2DW12_y";
+    char * Zstream_name = "LIS2DW12_z";
+
+    if( dbg_flag & DBG_M2X ) {
+        printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                device_id, api_key, Xstream_name);
+        printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                device_id, api_key, Ystream_name);
+        printf("-M2x: Tx M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                device_id, api_key, Zstream_name);
+        }
+
+    start_data_service();
+    m2x_create_stream(device_id, api_key, Xstream_name);
+    m2x_create_stream(device_id, api_key, Ystream_name);
+    m2x_create_stream(device_id, api_key, Zstream_name);
+
+    m2x_update_stream_value(device_id, api_key, Xstream_name, ptr[0]);		
+    m2x_update_stream_value(device_id, api_key, Ystream_name, ptr[1]);		
+    m2x_update_stream_value(device_id, api_key, Zstream_name, ptr[2]);		
 
     printf("\n");
 }

@@ -11,6 +11,7 @@
 #include "mytimer.h"
 #include "m2x.h"
 #include "http.h"
+#include "lis2dw12.h"
 
 typedef struct led_val_t {
     float temp;
@@ -180,6 +181,27 @@ int command_demo_mode(int argc, const char * const * argv )
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
         do_hts2m2x();
+
+        {
+        void do_lis2dw_temp(int, void *);
+        void do_lis2dw_xyz(char **);
+        char **lis2dw12_m2x(void);
+
+        int bit8_temp    =  lis2dw12_readTemp8();
+        float bit12_temp =  lis2dw12_readTemp12();
+        if (dbg_flag & DBG_DEMO)
+            printf("-DEMO: LIS2DW12 8-bit Temp data to M2X\n");
+        do_lis2dw_temp(0, (void *)&bit8_temp);
+
+        if (dbg_flag & DBG_DEMO)
+            printf("-DEMO: LIS2DW12 12-bit Temp data to M2X\n");
+        do_lis2dw_temp(1, (void *)&bit12_temp);
+
+        if (dbg_flag & DBG_DEMO)
+            printf("-DEMO: LIS2DW12 XYZ data to M2X\n");
+        do_lis2dw_xyz(lis2dw12_m2x());
+        }
+
         if (dbg_flag & DBG_DEMO)
             printf("\n-DEMO: A2D data to M2X\n");
         do_adc2m2x();
