@@ -383,3 +383,20 @@ char **lis2dw12_m2x(void)
     return data;
 }
 
+//
+// Use interrupts for:
+//  1. Temp sensor data
+//  2. XYZ data available
+//
+//  INT1 = DATA READY // Temp Data
+//  INT2 = FIFO FULL  // xyz Data
+//
+
+int lis2dw12_int1_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction)
+{
+}
+
+int lis2dw12_int2_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction)
+{
+}
+
