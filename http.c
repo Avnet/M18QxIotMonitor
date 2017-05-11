@@ -17,6 +17,8 @@ typedef struct _http_info_s {
 	size_t total_len;
 } http_info_t;
 
+static int rsize;
+
 static int http_deinit(http_info_t *req)
 {
     if(!req)
@@ -226,9 +228,12 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
 size_t static write_callback_func(void *buffer, size_t size, size_t nmemb, void *userp)
 {
     char *response_ptr =  (char*)userp;
+
     if( dbg_flag & DBG_FLOW )
         printf("-FLOW: IN CALLBACK: buffer=%s\n",buffer);
-    strncpy(response_ptr, buffer, (size*nmemb));
+    if( size*nmemb > 0 )
+        strncpy(&response_ptr[rsize], buffer, (size*nmemb));
+    rsize += (size * nmemb);
     return(size * nmemb);
 }
 
@@ -252,6 +257,7 @@ int http_get(http_info_t *http_req, const char *url, char *response)
     curl_easy_setopt(http_req->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
     curl_easy_setopt(http_req->curl, CURLOPT_FOLLOWLOCATION, 1); 
 
+    rsize = 0;
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
 
@@ -344,43 +350,4 @@ int m2x_update_color_value ( const char *device_id_ptr, const char *api_key_ptr,
     http_deinit(&put_req);
     return 0;
 }
-
-//
-// This function POST to pubnub
-//
-
-int flow_put( const char *flow_base_url, const char *flow_input_name, 
-                 const char *flow_device_name, const char *flow_server, 
-                 const char *put_cmd )
-{
-    int r;
-    http_info_t put_req;
-    char tmp_buff1[256];
-    char url[256];
-
-    if( dbg_flag & DBG_FLOW )
-        printf("-FLOW: BASE URL: %s\n-FLOW: INPUT NAME: %s\n-FLOW: DEVICE: %s\n-FLOW: COMMAND: %s\n",
-                flow_base_url, flow_input_name, flow_device_name, put_cmd);
-
-    memset(&put_req, 0, sizeof(http_info_t));
-    memset(tmp_buff1, 0, sizeof(tmp_buff1));
-    memset(url, 0, sizeof(url));
-
-    http_init(&put_req, 0);
-
-    sprintf(tmp_buff1, "Host:%s", flow_server);
-    put_req.header = http_add_field(put_req.header, tmp_buff1);
-    put_req.header = http_add_field(put_req.header, "HTTP/1.1");
-    put_req.header = http_add_field(put_req.header, "Accept: */*");
-
-    sprintf(url, "%s/%s?serial=%s%s", flow_base_url, flow_input_name, flow_device_name, put_cmd);
-    r=http_put(&put_req, url);
-
-    if (r < 0 && (dbg_flag & DBG_FLOW) )
-                printf("-FLOW PUT: bad response %d\n",r);
-    http_deinit(&put_req);
-    return r;
-
-}
-
 

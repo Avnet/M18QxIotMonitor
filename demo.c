@@ -12,6 +12,7 @@
 #include "m2x.h"
 #include "http.h"
 #include "lis2dw12.h"
+#include "hts221.h"
 
 typedef struct led_val_t {
     float temp;
@@ -131,7 +132,7 @@ int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
     void set_m2xColor( char *);
-    char cmd[256], resp[256];
+    char cmd[512], resp[512];
     char color[10];
     int  done=0, k=0;
 
@@ -184,20 +185,38 @@ int command_demo_mode(int argc, const char * const * argv )
 
 //----
         {
+        float hts221_temp = hts221_getTemp();
+        float hts221_humid= hts221_getHumid()/10;
+        float adc_voltage, x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);
         char  **ptr, **lis2dw12_m2x(void);
+        adc_handle_t my_adc=(adc_handle_t)NULL;
 
-        int bit8_temp    =  lis2dw12_readTemp8();
+        adc_init(&my_adc);
+        adc_read(my_adc, &adc_voltage);
+        adc_deinit(&my_adc);
+
         float bit12_temp =  lis2dw12_readTemp12();
+        int bit8_temp    =  lis2dw12_readTemp8();
+
+        ptr=lis2dw12_m2x();
+        sscanf(ptr[0],"%f",&x);
+        sscanf(ptr[1],"%f",&y);
+        sscanf(ptr[2],"%f",&z);
+
+        if (dbg_flag & DBG_DEMO) {
+            printf("\n-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f\n",x,y,z);
+            printf("\n-DEMO: to PubNub, A2D=%6.4f HTS221_temp= %4.2f THS221_humid= %4.2f\n",adc_voltage, hts221_temp, hts221_humid);
+            }
 
         memset(cmd, 0x00, sizeof(cmd));
-        ptr=lis2dw12_m2x();
-        sprintf(cmd,"&LIS2DW12_x=%s&LIS2DW12_y=%s&LIS2DW12_z=%s&LIS2DW12_TEMP=%3.1f&LIS2DW8=%d", 
-                     ptr[0], ptr[1], ptr[2], bit12_temp, bit8_temp);
+        sprintf(cmd,"&LIS2DW12_x=%6.2f&LIS2DW12_y=%6.2f&LIS2DW12_z=%6.2f&LIS2DW12_TEMP=%3.1f&LIS2DW8=%d"
+                    "&HTS221_TEMP=%4.2f&HTS221_HUMID=%3.1f&ADC=%4.3f", 
+                     x, y, z, bit12_temp, bit8_temp, hts221_temp, hts221_humid, adc_voltage);
+
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: LIS2DW12 XYZ data to PUBNUB (%s)\n",cmd);
-//        flow_put ( FLOW_BASE_URL, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd);
         flow_get ( FLOW_BASE_URL, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         }
 //----
@@ -221,5 +240,4 @@ int command_demo_mode(int argc, const char * const * argv )
         printf("Restarting the Monitor...\n");
     binary_io_init();
 }
-
 
