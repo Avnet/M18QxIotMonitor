@@ -13,6 +13,7 @@
 #include "http.h"
 #include "lis2dw12.h"
 #include "hts221.h"
+#include "mal.hpp"
 
 typedef struct led_val_t {
     float temp;
@@ -52,6 +53,8 @@ gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
 volatile int button_press=0;
 struct timespec key_press, key_release, keypress_time;
 
+
+static char gps_cmd[512];
 
 LED_VAL led_demo[] = {
     HGREEN_LED,
@@ -127,18 +130,90 @@ int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 	return 0;
 }
 
+unsigned int ascii_to_epoch(char *epoch_ascii)
+{
+    unsigned long long int lepoch=0;
+    unsigned long long int tens=1;
+    unsigned int epoch;
+    int asciilen, nbr;
+    for( asciilen=strlen(epoch_ascii)-1; asciilen>=0; asciilen-- ) {
+        nbr = epoch_ascii[asciilen] - 0x30;
+        lepoch += (tens * nbr);
+        tens *= 10;
+        }
+    return lepoch/1000;
+}
+
+void sendGPS(void)
+{
+#if 0
+    char cmd[512], resp[512];
+    struct tm gps_time;
+    json_keyval om[12];
+    int alt, k, done, i, intfmt, strfmt;
+    float lat, lng;
+    char gpstime[80];
+
+    printf("Getting GPS information...\n");
+    setGPSmode(4);
+    getGPSconfig(om,sizeof(om));
+    enableGPS();
+    done = 0;
+    while( !done ) {
+        k=i=getGPSlocation(om,sizeof(om));
+        done = atoi(om[3].value);
+        for( i=1, intfmt=strfmt=0; i<k; i++ ) {
+            if( !strcmp(om[i].key,"loc_status") )
+                printf("Status: %s\n",atoi(om[i].value)?"COMPLETED\n":"IN PROGRESS");
+            else if( !strcmp(om[i].key,"latitude") )
+                lat = atof(om[i].value);
+            else if( !strcmp(om[i].key,"longitude") )
+                lng= atof(om[i].value);
+            else if( !strcmp(om[i].key,"timestamp") ) {
+                time_t rawtime = ascii_to_epoch(om[i].value);
+                struct tm *ts = localtime(&rawtime);
+                strftime(gpstime, sizeof(gpstime), "%a/%d%m%Y/%H-%M-%S%Z", ts);
+                }
+            else if( !strcmp(om[i].key,"altitude") )
+                alt = atoi(om[i].value);
+            else if( !strcmp(om[i].key,"speed") )
+                ;
+            else if( !strcmp(om[i].key,"accuracy") )
+                ;
+            else if( !strcmp(om[i].key,"errno") ) {
+                if( atoi(om[i].value) )
+                    printf("GPS ERROR! %d\n",atoi(om[i].value));
+                }
+            else if( !strcmp(om[i].key,"errmsg") ) {
+                if( strcmp(om[i].value,"<null>") )
+                    printf("GPS ERROR MESSAGE: %s\n",om[i].value);
+                }
+            else
+                printf("(%2d) KEY=%s ; VALUE=%s\n",i,om[i].key,om[i].value);
+            }
+        sleep(5);
+        }
+    disableGPS();
+#endif
+    memset(gps_cmd, 0x00, sizeof(gps_cmd));
+//    sprintf(gps_cmd,"&LAT=%f&LONG=%f&ALT=%d&TIME=%s", lat, lng, alt, gpstime);
+    sprintf(gps_cmd,"&LAT=37.4043&LONG=-121.9742&ALT=60");
+
+    if (dbg_flag & DBG_DEMO)
+        printf("-DEMO: GPS command set to (%s)\n",gps_cmd);
+}
 
 int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
     void set_m2xColor( char *);
-    char cmd[512], resp[512];
+    char cmd[1024], resp[1024];
     char color[10];
     int  done=0, k=0;
 
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Starting Demo Mode.\n");
-    printf("The LED will be read while establishing a connection to FLOW\n");
+    printf("The LED will be red while establishing a connection to FLOW\n");
     printf("It will turn GREEN once connected.  After that pressing the\n");
     printf("USER button will cause the program to send 2 messages to M2X\n");
     printf("and 1 message to FLOW.  If you hold the button down for >3 \n");
@@ -165,6 +240,7 @@ int command_demo_mode(int argc, const char * const * argv )
     // while we are waiting for a data connection, make the LED RED...
     gpio_write( red_led, GPIO_LEVEL_HIGH);
 
+    sendGPS();
     while( headless || !done ) {
         memset(cmd, 0x00, sizeof(cmd));
         sprintf(cmd,"&temp=%4.2f&humidity=%4.2f&accelX=0.0&accelY=%3.1f&accelZ=%3.1f", 
@@ -185,17 +261,21 @@ int command_demo_mode(int argc, const char * const * argv )
 
 //----
         {
+        json_keyval om[20];
         float hts221_temp = hts221_getTemp();
         float hts221_humid= hts221_getHumid()/10;
         float adc_voltage, x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);
-        char  **ptr, **lis2dw12_m2x(void);
+        char  sstrength[20], **ptr, **lis2dw12_m2x(void);
         adc_handle_t my_adc=(adc_handle_t)NULL;
 
         adc_init(&my_adc);
         adc_read(my_adc, &adc_voltage);
         adc_deinit(&my_adc);
+
+        get_wwan_status(om, sizeof(om));
+        strncpy(sstrength,om[4].value, 10);
 
         float bit12_temp =  lis2dw12_readTemp12();
         int bit8_temp    =  lis2dw12_readTemp8();
@@ -206,17 +286,17 @@ int command_demo_mode(int argc, const char * const * argv )
         sscanf(ptr[2],"%f",&z);
 
         if (dbg_flag & DBG_DEMO) {
-            printf("\n-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f\n",x,y,z);
+            printf("\n-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f, Signal Strength=%s\n",x,y,z,sstrength);
             printf("\n-DEMO: to PubNub, A2D=%6.4f HTS221_temp= %4.2f THS221_humid= %4.2f\n",adc_voltage, hts221_temp, hts221_humid);
             }
 
         memset(cmd, 0x00, sizeof(cmd));
-        sprintf(cmd,"&LIS2DW12_x=%6.2f&LIS2DW12_y=%6.2f&LIS2DW12_z=%6.2f&LIS2DW12_TEMP=%3.1f&LIS2DW8=%d"
-                    "&HTS221_TEMP=%4.2f&HTS221_HUMID=%3.1f&ADC=%4.3f", 
-                     x, y, z, bit12_temp, bit8_temp, hts221_temp, hts221_humid, adc_voltage);
+        sprintf(cmd,"&LIS2DW12_x=%06.2f&LIS2DW12_y=%06.2f&LIS2DW12_z=%06.2f"
+                    "&SSIG=%s&HTS221_TEMP=%4.2f&HTS221_HUMID=%3.1f&ADC=%4.3f%s",
+                     x, y, z, sstrength, hts221_temp, hts221_humid, adc_voltage, gps_cmd);
 
         if (dbg_flag & DBG_DEMO)
-            printf("-DEMO: LIS2DW12 XYZ data to PUBNUB (%s)\n",cmd);
+            printf("-DEMO: data command to PUBNUB (%s)\n",cmd);
         flow_get ( FLOW_BASE_URL, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         }
 //----

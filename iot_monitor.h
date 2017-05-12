@@ -114,6 +114,7 @@ extern int command_dbg(int argc, const char * const * argv );
 extern "C" {
 #endif
 extern int command_demo_mode(int, const char * const *);
+extern unsigned int ascii_to_epoch(char *epoch_ascii);
 #ifdef __cplusplus
 }
 #endif
@@ -133,6 +134,7 @@ void set_cmdhandler(    void (*of)(const char*),  //function to call to output t
        int (*exec_cb)(int, char const * const*),  //call back to call when a input line is complete
 char ** (*complete_cb)(int, const char* const*),  //call back for command line completion
                          const cmd_entry tabp[]); //what command table to use
+
 
 
 #endif // __IOT_MONITOR_H__

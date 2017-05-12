@@ -695,20 +695,6 @@ int command_headless(int argc, const char * const * argv )
 }
 
 
-unsigned int ascii_to_epoch(char *epoch_ascii)
-{
-    unsigned long long int lepoch=0;
-    unsigned long long int tens=1;
-    unsigned int epoch;
-    int asciilen, nbr;
-    for( asciilen=strlen(epoch_ascii)-1; asciilen>=0; asciilen-- ) {
-        nbr = epoch_ascii[asciilen] - 0x30;
-        lepoch += (tens * nbr);
-        tens *= 10;
-        }
-    return lepoch/1000;
-}
-
 int command_gps(int argc, const char * const * argv )
 {   
     struct tm gps_time;

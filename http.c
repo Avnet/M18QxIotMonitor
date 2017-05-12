@@ -227,13 +227,17 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
 
 size_t static write_callback_func(void *buffer, size_t size, size_t nmemb, void *userp)
 {
-    char *response_ptr =  (char*)userp;
+    char *response_ptr =  (char*)(userp+rsize);
 
     if( dbg_flag & DBG_FLOW )
-        printf("-FLOW: IN CALLBACK: buffer=%s\n",buffer);
-    if( size*nmemb > 0 )
-        strncpy(&response_ptr[rsize], buffer, (size*nmemb));
+        printf("-FLOW: IN CALLBACK: usr=%08X buffer(%d/%d)=%s\n",response_ptr,size*nmemb,rsize,buffer);
+
+    if( size*nmemb > 0 ) {
+        memcpy(response_ptr, buffer, (size*nmemb));
+        }
+
     rsize += (size * nmemb);
+    response_ptr[rsize] = '\0';
     return(size * nmemb);
 }
 
@@ -257,9 +261,9 @@ int http_get(http_info_t *http_req, const char *url, char *response)
     curl_easy_setopt(http_req->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
     curl_easy_setopt(http_req->curl, CURLOPT_FOLLOWLOCATION, 1); 
 
-    rsize = 0;
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
     curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
+    rsize = 0;
 
     res = curl_easy_perform(http_req->curl);
     return (res != CURLE_OK) ? -res : 0;
@@ -311,7 +315,6 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
 
     http_deinit(&get_req);
     return response;
-
 }
 
 
