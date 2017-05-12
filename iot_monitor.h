@@ -79,6 +79,7 @@ extern char* strupr(char* s);
 extern const cmd_entry mon_command_table[];
 extern const cmd_entry iot_command_table[];
 extern int headless;
+extern int headless_timed;
 extern unsigned int dbg_flag;
 
 extern int command_help(int argc, const char * const * argv );

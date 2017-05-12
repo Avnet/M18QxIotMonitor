@@ -54,6 +54,7 @@
 
 sysinfo mySystem;
 int headless=false;
+int headless_timed=0;
 int ft_mode=false;
 static struct termios oldt, newt;
 
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    while((c=getopt(argc,argv,"rfd:a:t:l:v:")) != -1 )
+    while((c=getopt(argc,argv,"rf:d:a:t:l:v:")) != -1 )
         switch(c) {
            case 'r': //factory test
                ft_mode=true;
@@ -106,6 +107,7 @@ int main(int argc, char *argv[])
                break;
            case 'f':
                headless=true;
+               sscanf(optarg,"%d",&headless_timed);
                break;
            case '?':
                if (optopt == 'a' || optopt == 's' ||optopt == 'd')

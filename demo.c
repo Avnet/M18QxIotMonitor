@@ -254,7 +254,11 @@ int command_demo_mode(int argc, const char * const * argv )
         set_m2xColor(color);
         set_color(color);
 
-        while( !button_press ); /* wait for a button press */
+        if( headless_timed )
+            sleep(headless_timed);
+        else
+            while( !button_press ); /* wait for a button press */
+
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
         do_hts2m2x();
