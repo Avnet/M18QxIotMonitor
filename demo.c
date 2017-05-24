@@ -5,6 +5,8 @@
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
 #include <time.h>
+#include <sys/time.h>
+#include <math.h>
 
 #include "iot_monitor.h"
 #include "binio.h"
@@ -203,6 +205,7 @@ void sendGPS(void)
         printf("-DEMO: GPS command set to (%s)\n",gps_cmd);
 }
 
+
 int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
@@ -242,11 +245,28 @@ int command_demo_mode(int argc, const char * const * argv )
 
     sendGPS();
     while( headless || !done ) {
+        struct timeval start, end;  //measure duration of flow calls...
+        double elapse=0;
+        int dly;
+
         memset(cmd, 0x00, sizeof(cmd));
         sprintf(cmd,"&temp=%4.2f&humidity=%4.2f&accelX=0.0&accelY=%3.1f&accelZ=%3.1f", 
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
+        gettimeofday(&start, NULL);
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
+        gettimeofday(&end, NULL);
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
+        elapse += (((end.tv_sec - start.tv_sec)*1000) + (end.tv_usec/1000 - start.tv_usec/1000));
+        dly = ((headless_timed*1000)-round(elapse))/1000;
+
+        printf("FLOW Calls took %5.2f seconds--",elapse/1000);
+        if( dly < 0) {
+            printf("Which exceeded your delay request of %d seconds continue\n",headless_timed);
+            dly = 0;
+            }
+        else
+            printf( "wait %d secs\n",dly);
+
         if (dbg_flag & DBG_DEMO)
             printf("-Demo: flow said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
@@ -254,8 +274,10 @@ int command_demo_mode(int argc, const char * const * argv )
         set_m2xColor(color);
         set_color(color);
 
-        if( headless_timed )
-            sleep(headless_timed);
+        if( headless_timed ) {
+            if( dly > 0)
+                sleep(dly);
+            }
         else
             while( !button_press ); /* wait for a button press */
 
@@ -301,7 +323,11 @@ int command_demo_mode(int argc, const char * const * argv )
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: data command to PUBNUB (%s)\n",cmd);
+        gettimeofday(&start, NULL);
         flow_get ( FLOW_BASE_URL, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
+        gettimeofday(&end, NULL);
+        elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
+        printf( "call to FLOW#2 took: %4.2f msec\n",elapse);
         }
 //----
         if (dbg_flag & DBG_DEMO)

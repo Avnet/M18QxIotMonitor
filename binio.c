@@ -10,6 +10,7 @@
 #include "binio.h"
 #include "mytimer.h"
 #include "m2x.h"
+#include "lis2dw12.h"
 
 GPIOPIN_IN gpio_input;
 size_t     gpio_input_timer;
@@ -49,6 +50,7 @@ void binario_io_close(void)
     gpio_deinit( &gpios[1].hndl);
     gpio_deinit( &gpios[2].hndl);
     gpio_deinit( &gpio_input.hndl);
+    release_irqs();
 }
 
 

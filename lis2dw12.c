@@ -27,6 +27,11 @@ typedef struct {
 float sensitivity=0;
 float ACCX, ACCY, ACCZ; //linear acceleration sensors
 
+gpio_handle_t int1_pin=0, int2_pin=0;
+
+int lis2dw12_int1_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction);
+int lis2dw12_int2_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction);
+
 REGISTER lis2dw12_registers[] = {
 //  Register              RW  Reg  Current Default  Time of 
 //      Name                  Addr  Value   Value    access  Comments
@@ -34,11 +39,11 @@ REGISTER lis2dw12_registers[] = {
     "OUT_T_L",             0, 0x0d,   0,      0,     0,      //0- Temp sensor output
     "OUT_T_H",             0, 0x0e,   0,      0,     0,      //1- Temp sensor output
     "WHO_AM_I",            0, 0x0f,   0,     0x44,   0,      //2- Who am I ID
-    "CTRL1",               1, 0x20,   0,     0x6a,   0,      //3- Control Register
+    "CTRL1",               1, 0x20,   0,     0x62,   0,      //3- Control Register
     "CTRL2",               1, 0x21,   0,     0x08,   0,      //4- Control Register
-    "CTRL3",               1, 0x22,   0,     0x02,   0,      //5- Control Register
-    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,      0,     0,      //6- Control Register
-    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,      0,     0,      //7- Control Register
+    "CTRL3",               1, 0x22,   0,     0x3a,   0,      //5- Control Register
+    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,     0x04,   0,      //6- Control Register
+    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,     0x10,   0,      //7- Control Register
     "CTRL6",               1, 0x25,   0,      0,     0,      //8- Control Register
     "OUT_T",               0, 0x26,   0,      0,     0,      //9- Temp sensor output
     "STATUS",              0, 0x27,   0,      0,     0,      //10- Status data register
@@ -48,7 +53,7 @@ REGISTER lis2dw12_registers[] = {
     "OUT_Y_H",             0, 0x2b,   0,      0,     0,      //14- Output register
     "OUT_Z_L",             0, 0x2c,   0,      0,     0,      //15- Output register
     "OUT_Z_H",             0, 0x2d,   0,      0,     0,      //16- Output register
-    "FIFO_CTRL",           1, 0x2e,   0,      0,     0,      //17- FIFO controle register
+    "FIFO_CTRL",           1, 0x2e,   0,     0xdf,   0,      //17- FIFO controle register
     "FIFO_SAMPLES",        0, 0x2f,   0,      0,     0,      //18- Unread samples stored in FIFO
     "TAP_THS_X",           1, 0x30,   0,      0,     0,      //19- Tap thresholds
     "TAP_THS_Y",           1, 0x31,   0,      0,     0,      //20- Tap thresholds
@@ -135,7 +140,8 @@ REGISTER lis2dw12_registers[] = {
 
 #define TRIGGER_TEMP  {uint8_t v=0; while( !(v & 0x40) ) v=READ_REGISTER(LIS2DW12_STATUS_DUP);}
 
-static uint8_t lis2dw12_read_byte(uint8_t reg_addr) {
+static uint8_t lis2dw12_read_byte(uint8_t reg_addr) 
+{
     i2c_handle_t my_handle=(i2c_handle_t)NULL;
     unsigned char value_read = 0;
 
@@ -183,6 +189,18 @@ int lis2dw12_initialize(void) {
     int i, v;
     const time_t t = time(0);
 
+printf("initialize the INTx inputs for LIS2DW12\n");
+    gpio_init(GPIO_PIN_6, &int1_pin);
+    gpio_init(GPIO_PIN_7, &int2_pin);
+    gpio_dir(int1_pin, GPIO_DIR_INPUT);
+    gpio_dir(int2_pin, GPIO_DIR_INPUT);
+
+    if( (i=gpio_irq_request(int1_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int1_irq)) != 0)
+        printf("ERROR: can't set int1 as interrupt input. (%d)\n",i);
+
+    if( (i=gpio_irq_request(int2_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int2_irq)) != 0)
+        printf("ERROR: can't set int2 as interrupt input. (%d)\n",i);
+
     for( i=0; i<REG_SIZE; i++ ) {
         if( lis2dw12_registers[i].rw ) {
             WRITE_REGISTER(i, lis2dw12_registers[i].def);
@@ -227,7 +245,6 @@ float lis2dw12_readTemp12( void ) {
         printf("-LIS2DW12: tempF=%4.2f\n",tempF);
         }
 
-    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_SCONV);
     return tempF;
 }
 
@@ -249,7 +266,6 @@ int lis2dw12_readTemp8( void ) {
         printf("-LIS2DW12: tempF =%d\n",tempF);
         }
 
-    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_SCONV);
     return tempF;
 }
 
@@ -259,6 +275,7 @@ static int lis2dw12_get_acc_data( void )
     uint8_t status=0, high, low;
     int X, Y, Z;
 
+    WRITE_REGISTER(LIS2DW12_CTRL1,LIS2DW12_SCONV);
     TRIGGER_XYZ;
 
     low =READ_REGISTER(LIS2DW12_OUT_X_L);
@@ -388,15 +405,38 @@ char **lis2dw12_m2x(void)
 //  1. Temp sensor data
 //  2. XYZ data available
 //
-//  INT1 = DATA READY // Temp Data
-//  INT2 = FIFO FULL  // xyz Data
+//  INT1 = FIFO READY              // xyz Data
+//  INT2 = TEMP READY              // Temp Data
 //
 
 int lis2dw12_int1_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
+    i2c_handle_t my_handle=(i2c_handle_t)NULL;
+    uint8_t addr = 26;
+    unsigned char i;
+    printf("INT1 occured!!  \n");
+
+    if (pin_name != GPIO_PIN_6) {
+        return 0;
+        }
+
+    return 0;
 }
 
 int lis2dw12_int2_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
+    printf("INT2 occured!!  \n");
+    if (pin_name != GPIO_PIN_6) {
+        return 0;
+        }
+
+    return 0;
+}
+
+void release_irqs(void)
+{
+printf("release INTx pins\n");
+    gpio_deinit( &int1_pin);
+    gpio_deinit( &int2_pin);
 }
 
