@@ -114,27 +114,12 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
 //      will return <0 if an error occurs, otherwise 0.
 
 int start_data_service(void) {
-    char jcmd[] = "{ \"action\": \"set_network_connection_mode\", \"args\": { \"manual_mode\": 0 } }";
-    return send_mal_command(jcmd, NULL, 0, false);
-
-
-//    struct json_object *jobj_cmd = json_object_new_object(), 
-//        *jobj_manual_mode = json_object_new_object(),
-//        *jstr_action = json_object_new_string("set_network_connection_mode"),
-//        *jint_manual_mode_value = json_object_new_int(0);	
-//
-//    json_object_object_add(jobj_manual_mode, "manual_mode", jint_manual_mode_value); 
-//    json_object_object_add(jobj_cmd, "action", jstr_action); 
-//    json_object_object_add(jobj_cmd, "args", jobj_manual_mode);
-//    r=send_mal_command((char*)json_object_to_json_string(jobj_cmd), NULL, 0, 0);
-//
-//
-//    if (r < 0)
-//        return r;
-//
-//    /* JMF TODO: need to issue a 'get_network_connection_status' to ensure we are connected...  */
-//    sleep(5); //wait for setting up data service.
-//    return 0;
+    int ret = 0;
+    char jcmd1[] = "{\"action\":\"set_network_connection_mode\",\"args\":{\"mode\":0,\"ondemand_timeout\":2,\"manual_mode\":1}}";
+    char jcmd2[] = "{\"action\":\"set_wwan_allow_data_roaming\",\"args\":{\"enable\":1}}";
+    ret  = send_mal_command(jcmd1, NULL, 0, false);
+    ret |= send_mal_command(jcmd2, NULL, 0, false);
+    return ret;
 } 
 
 //
@@ -248,6 +233,31 @@ char *getOperatingMode(json_keyval *kv, int kvsize) {
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
     return kv[3].value;    
+}
+
+//
+// get roaming permission
+//
+// Input:   pointer to a key/value structure
+//          size of the key/value structure
+// Output:  Key/Value pairs are updated with information that is returned
+//
+// Returns: number of Key/Value pairs
+//
+int get_wwan_allow_data_roaming( json_keyval *kv, int kvsize) {
+    char rstr[100];
+    char jcmd[] = "{ \"action\" : \"get_wwan_allow_data_roaming\" }";
+
+    send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    return parse_maljson (rstr, kv, kvsize);
+}
+
+int get_connection_status(json_keyval *kv, int kvsize) {
+    char rstr[500];
+    char jcmd[] = "{ \"action\" : \"get_network_connection_status\" }";
+
+    send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    return parse_maljson (rstr, kv, kvsize);
 }
 
 //

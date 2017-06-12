@@ -199,7 +199,7 @@ void sendGPS(void)
 #endif
     memset(gps_cmd, 0x00, sizeof(gps_cmd));
 //    sprintf(gps_cmd,"&LAT=%f&LONG=%f&ALT=%d&TIME=%s", lat, lng, alt, gpstime);
-    sprintf(gps_cmd,"&LAT=37.4043&LONG=-121.9742&ALT=60");
+    sprintf(gps_cmd,"&LAT=51.04427&LONG=-114.062019&ALT=3438");
 
     if (dbg_flag & DBG_DEMO)
         printf("-DEMO: GPS command set to (%s)\n",gps_cmd);
@@ -237,7 +237,7 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
     button_press = 0;
 
-    start_data_service();
+//    start_data_service();
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
@@ -248,6 +248,15 @@ int command_demo_mode(int argc, const char * const * argv )
         struct timeval start, end;  //measure duration of flow calls...
         double elapse=0;
         int dly;
+        json_keyval om[20];
+        char sstrength[20]; 
+
+        get_wwan_status(om, sizeof(om));
+        strncpy(sstrength,om[4].value, 10);
+        if( !strcmp(om[7].value,"1") )
+            wwan_io(1);
+        else
+            wwan_io(0);
 
         memset(cmd, 0x00, sizeof(cmd));
         sprintf(cmd,"&temp=%4.2f&humidity=%4.2f&accelX=0.0&accelY=%3.1f&accelZ=%3.1f", 
@@ -283,25 +292,21 @@ int command_demo_mode(int argc, const char * const * argv )
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
-        do_hts2m2x();
+//jmf        do_hts2m2x();
 
 //----
         {
-        json_keyval om[20];
         float hts221_temp = hts221_getTemp();
         float hts221_humid= hts221_getHumid()/10;
         float adc_voltage, x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);
-        char  sstrength[20], **ptr, **lis2dw12_m2x(void);
+        char  **ptr, **lis2dw12_m2x(void);
         adc_handle_t my_adc=(adc_handle_t)NULL;
 
         adc_init(&my_adc);
         adc_read(my_adc, &adc_voltage);
         adc_deinit(&my_adc);
-
-        get_wwan_status(om, sizeof(om));
-        strncpy(sstrength,om[4].value, 10);
 
         float bit12_temp =  lis2dw12_readTemp12();
         int bit8_temp    =  lis2dw12_readTemp8();

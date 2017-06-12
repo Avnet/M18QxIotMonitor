@@ -21,6 +21,8 @@ char * getIMSI(json_keyval *kv, int kvsize);
 char * getICCID(json_keyval *kv, int kvsize);
 char * getMSISDN(json_keyval *kv, int kvsize);
 char *getOperatingMode(json_keyval *kv, int kvsize);
+int get_connection_status(json_keyval *kv, int kvsize);
+int get_wwan_allow_data_roaming( json_keyval *kv, int kvsize);
 int get_wwan_status( json_keyval *kv, int kvsize);
 
 char *getGPSconfig(json_keyval *kv, int kvsize);

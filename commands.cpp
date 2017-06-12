@@ -462,18 +462,42 @@ int command_WWANStatus(int, char const* const*)
     const char *xs_state[]   = {"Unknown","Attached","Detached"};
     const char *roaming[]    = {"Home", "Roaming", "Unknown"};
 
-    printf(" WWAN Status (");
     start_data_service();
 
-    printf("received %d key/value pairs):\n", get_wwan_status(om, sizeof(om)));
+    printf("\n->WWAN Status \n");
+    printf("received %d key/value pairs:\n", get_wwan_status(om, sizeof(om)));
     printf("             Radio Mode: %s(%s)\n", radio_mode[atoi(om[3].value)], om[3].value);
     printf("        Signal strength; %s\n", om[4].value);
     printf("           Signal Level: %s\n", om[6].value);
     printf("                  state: %s(%s)\n", radio_state[atoi(om[7].value)], om[7].value);
     printf(" Circuit-switched state: %s(%s)\n", xs_state[atoi(om[8].value)], om[8].value);
     printf("  Packet-switched state: %s(%s)\n", xs_state[atoi(om[9].value)], om[9].value);
-    printf("     Registration state: %s(%s)\n", roaming[atoi(om[16].value)], om[16].value);
+    printf("     Registration state: %s(%s)\n\n", roaming[atoi(om[16].value)], om[16].value);
+
+    const char * type[] = {"3G/LTE", "Ethernet", "WiFi" };
+    const char * state[] ={ "Disconnected", "Disconnecting", "Connecting", "Connected", 
+                            "Disconnected, and PIN locked", "Disconnected and SIM removed" };
+
+    printf("->Network Connection Status \n");
+    printf("received %d key/value pairs:\n", get_connection_status(om, sizeof(om)));
+    printf("   connection type: %s(%s)\n", type[atoi(om[3].value)], om[3].value);
+    printf("  connection state: %s(%s)\n", state[atoi(om[4].value)], om[4].value);
+    printf("   connection time: %s\n", om[5].value);
+    printf("          provider: %s\n", om[6].value);
+    printf("        radio mode: %s\n", om[7].value);
+    printf("  data_bearer_tech: %s\n", om[8].value);
+    printf("    roaming status: %s\n", om[9].value);
+    printf("   signal strength: %s\n", om[10].value);
+    printf("      signal level: %s\n", om[11].value);
+    printf("          LTE rsrp: %s\n", om[12].value);
+    printf("        WCDMA RSCP: %s\n", om[13].value);
+    printf("      ipv6 address: %s\n\n", om[14].value);
+
+    printf("received %d key/value pairs:\n", get_wwan_allow_data_roaming(om, sizeof(om)));
+    printf("Allow Data Roaming: %s (%s)\n\n", atoi(om[3].value)? "YES":"NO", om[3].value);
+
 }
+
 
 void dump_keyvalues(json_keyval *pkv, int siz)
 {
