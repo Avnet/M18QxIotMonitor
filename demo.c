@@ -46,10 +46,13 @@ typedef struct led_val_t {
 #define LCYAN_LED       {1.0, 1.0, 0.3, 0.8} 
 #define LBLUE_LED       {1.0, 1.0, 0.2, 0.2} 
 
-#define FLOW_BASE_URL    "https://runm-east.att.io/cfb0a90848c28/eb2514c29597/c94b14f417ae42a/in/flow"
+
+
+//#define FLOW_BASE_URL    "https://runm-east.att.io/cfb0a90848c28/eb2514c29597/c94b14f417ae42a/in/flow"
+#define FLOW_BASE_URL      "https://run-west.att.io/c6bb8b123db6a/803bee680a53/042a3b30ed96c11/in/flow"
 #define FLOW_INPUT_NAME  "climate"
 #define FLOW_DEVICE_NAME "vstarterkit001"
-#define FLOW_SERVER      "run-east.att.io"
+#define FLOW_SERVER      "run-west.att.io"
 
 gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
 volatile int button_press=0;
@@ -210,6 +213,7 @@ int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
     void set_m2xColor( char *);
+    void wwan_io(int);
     char cmd[1024], resp[1024];
     char color[10];
     int  done=0, k=0;
@@ -262,19 +266,25 @@ int command_demo_mode(int argc, const char * const * argv )
         sprintf(cmd,"&temp=%4.2f&humidity=%4.2f&accelX=0.0&accelY=%3.1f&accelZ=%3.1f", 
                      led_demo[k].temp, led_demo[k].humid, led_demo[k].myAccelY, led_demo[k].myAccelZ);
         gettimeofday(&start, NULL);
+        if (dbg_flag & DBG_DEMO) {
+            time_t t = time(NULL);
+            struct tm *tmp = localtime(&t);
+            strftime(resp, sizeof(resp), "%H-%M-%S", tmp);
+            printf("==>-DEMO LOOP BEGIN AT: %s\n",resp);
+            }
         flow_get ( FLOW_BASE_URL, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
-        elapse += (((end.tv_sec - start.tv_sec)*1000) + (end.tv_usec/1000 - start.tv_usec/1000));
-        dly = ((headless_timed*1000)-round(elapse))/1000;
+//        elapse += (((end.tv_sec - start.tv_sec)*1000) + (end.tv_usec/1000 - start.tv_usec/1000));
+//        dly = ((headless_timed*1000)-round(elapse))/1000;
 
-        printf("FLOW Calls took %5.2f seconds--",elapse/1000);
-        if( dly < 0) {
-            printf("Which exceeded your delay request of %d seconds continue\n",headless_timed);
-            dly = 0;
-            }
-        else
-            printf( "wait %d secs\n",dly);
+//        printf("FLOW Calls took %5.2f seconds--",elapse/1000);
+//        if( dly < 0) {
+//            printf("Which exceeded your delay request of %d seconds continue\n",headless_timed);
+//            dly = 0;
+//            }
+//        else
+//            printf( "wait %d secs\n",dly);
 
         if (dbg_flag & DBG_DEMO)
             printf("-Demo: flow said: %s\n",resp);
@@ -284,15 +294,16 @@ int command_demo_mode(int argc, const char * const * argv )
         set_color(color);
 
         if( headless_timed ) {
-            if( dly > 0)
-                sleep(dly);
+//            if( dly > 0)
+//                sleep(dly);
             }
         else
             while( !button_press ); /* wait for a button press */
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
-//jmf        do_hts2m2x();
+        if (doM2X)
+            do_hts2m2x();
 
 //----
         {
@@ -317,8 +328,8 @@ int command_demo_mode(int argc, const char * const * argv )
         sscanf(ptr[2],"%f",&z);
 
         if (dbg_flag & DBG_DEMO) {
-            printf("\n-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f, Signal Strength=%s\n",x,y,z,sstrength);
-            printf("\n-DEMO: to PubNub, A2D=%6.4f HTS221_temp= %4.2f THS221_humid= %4.2f\n",adc_voltage, hts221_temp, hts221_humid);
+            printf("-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f, Signal Strength=%s\n",x,y,z,sstrength);
+            printf("-DEMO: to PubNub, A2D=%6.4f HTS221_temp= %4.2f THS221_humid= %4.2f\n",adc_voltage, hts221_temp, hts221_humid);
             }
 
         memset(cmd, 0x00, sizeof(cmd));
@@ -328,16 +339,29 @@ int command_demo_mode(int argc, const char * const * argv )
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: data command to PUBNUB (%s)\n",cmd);
-        gettimeofday(&start, NULL);
+
         flow_get ( FLOW_BASE_URL, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
-        printf( "call to FLOW#2 took: %4.2f msec\n",elapse);
+        if (dbg_flag & DBG_DEMO) {
+            time_t t = time(NULL);
+            struct tm *tmp = localtime(&t);
+            strftime(resp, sizeof(resp), "%H-%M-%S", tmp);
+            printf("==>-DEMO LOOP END AT: %s\n",resp);
+            printf("==>-DEMO LOOP TOOK %5.2f seconds\n",elapse/1000);
+            }
         }
-//----
-        if (dbg_flag & DBG_DEMO)
-            printf("\n-DEMO: A2D data to M2X\n");
-        do_adc2m2x();
+
+        if (doM2X)
+            do_adc2m2x();
+
+        dly = ((headless_timed*1000)-round(elapse))/1000;
+        if( dly > 0) {
+            if (dbg_flag & DBG_DEMO) 
+                printf("==>-DEMO: delay %d seconds\n",dly);
+            sleep(dly);
+            }
+
         k++;
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
             k = 0;

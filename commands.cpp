@@ -734,10 +734,10 @@ int command_gps(int argc, const char * const * argv )
 //    setGPS_NMEAFilter( 0xffff );
     getGPSconfig(om,sizeof(om));
     enableGPS();
-    done = 0;
-    while( !done ) {
+    done = 5;
+    while( done ) {
         k=i=getGPSlocation(om,sizeof(om));
-        done = atoi(om[3].value);
+        done = atoi(om[3].value)?0:5;
         for( i=1, intfmt=strfmt=0; i<k; i++ ) {
             if( !strcmp(om[i].key,"loc_status") )
                 printf("Status: %s\n",atoi(om[i].value)?"COMPLETED\n":"IN PROGRESS");
@@ -769,7 +769,7 @@ int command_gps(int argc, const char * const * argv )
             else
                 printf("(%2d) KEY=%s ; VALUE=%s\n",i,om[i].key,om[i].value);
             }
-        sleep(5);
+        sleep(done);
         }
     disableGPS();
 
@@ -787,6 +787,8 @@ int command_adc(int argc, const char * const * argv )
 }
 
 
+#define WAIT_FOR_BPRESS {while( !button_press ); while( button_press );}
+
 int command_facttest(int argc __attribute__((unused)), const char *const *argv)
 {
     extern struct timespec key_press, key_release, keypress_time;
@@ -796,40 +798,7 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     int i, done;
     float temp  = hts221_getTemp();
 
-    printf("Perform Factory Test Sequence.\n");
-//Test: Display WNC part info and SIM card info
-//Test: Display LTE RSSI information
-    command_WNCInfo(0,argv);
-    printf("\n");
-    command_WWANStatus(0,NULL);
-    printf("\n");
-
-//Test: Read ADC: Ambient Light Sensor 
-    command_adc(0,NULL);
-    printf("\n");
-
-//Test: Read PMOD(I2C): Read/Display Temprature information
-    i = hts221_getDeviceID();
-    if (i != 0) {
-        printf("       HTS221 Device id: 0x%02X\n", i);
-        printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-        printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
-        }
-
-//Test I2C: Read ID register from LIS2DW12
-    printf("     LIS2DW12 Device id: 0x%02X\n\n", lis2dw12_getDeviceID());
-    printf("\nreading/display Acceleration data. Press user button to end...\n");
-
-#define WAIT_FOR_BPRESS {while( !button_press ); while( button_press );}
     binario_io_close();
-    gpio_init( GPIO_PIN_92,  &red_led );
-    gpio_init( GPIO_PIN_101, &green_led );
-    gpio_init( GPIO_PIN_102, &blue_led );
-
-    gpio_dir(red_led,   GPIO_DIR_OUTPUT);
-    gpio_dir(green_led, GPIO_DIR_OUTPUT);
-    gpio_dir(blue_led,  GPIO_DIR_OUTPUT);
-    
     if( (i=gpio_init( GPIO_PIN_98,  &user_key)) != 0 )
         printf("ERROR: unable to initialize user key gpio. (%d)\n",i);
     if( (i=gpio_dir(user_key, GPIO_DIR_INPUT)) != 0 )
@@ -839,16 +808,90 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     if( (i=gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback)) != 0)
         printf("ERROR: can't set user key as interrupt input. (%d)\n",i);
 
-    while (!button_press ) {
-        lis2dw12_timer_task((size_t)0, (void *)argv);
-        sleep(1);
-        }
+    printf("\n\n\nPERFORM FACTORY TEST \n");
+    printf("--------------------------\n");
+    printf("This test will exercise the different interfaces and configuration of the M18Qx SOM. To\n");
+    printf("advance through the test, the user should press the 'User' button and the next test in \n");
+    printf("the sequence will be performed.  At the end of each test a Pass/Fail or further \n");
+    printf("instructions will be provided. Press the 'User' button to continue.\n\n");
+    printf(">>>>>>>>Test #1<<<<<<<<\n");
+    printf("-Verify the WNC interface and SIM card interface.\n");
+    printf("-Verify the Antenna Connections\n");
+    command_WNCInfo(0,NULL);
+    command_WWANStatus(0,NULL);
 
-//Test: User Push-Button/LED test
+    printf("\n");
+    printf("Verify that the results reflect: \n");
+    printf("(1) The Correct WNC Model, Firmware, and MAL Version to verify the WNC interface. \n");
+    printf("(2) That a valid ICCID, IMEA, and IMSI was obtained from the SIM card.\n");
+    printf("(3) That good Antenna connections are reflected in the Signal Strength/Signal Level readings.\n");
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #2<<<<<<<<\n");
+    printf("Verify GPS antenna connection\n");
+    command_gps(0, NULL);
+    printf("Verify that valid GPS results are obtained. This test will take time to complete. Once \n");
+    printf("GPS information is obtained, Latitude/Longitude/Time, Altitude and Accuracy will be \n");
+    printf("displayed. Verify this information is correct for the test location.\n");
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #3<<<<<<<<\n");
+    printf("Verify the ADC interface by Displaying the Light Sensor reading\n");
+    command_adc(0,NULL);
+    printf("Verify the ADC reading from the Light Sensor.");
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #4<<<<<<<<\n");
+    printf("Verify the I2C interface by reading The Device ID of the LIS2DW12\n");
+    printf("     LIS2DW12 Device id: 0x%02X\n", lis2dw12_getDeviceID());
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #5<<<<<<<<\n");
+    printf("Verify the I2C PMOD interface by reading the HTS221 Device info\n");
+    i = hts221_getDeviceID();
+    if (i != 0) {
+        printf("       HTS221 Device id: 0x%02X\n", i);
+        printf("     HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
+        printf("        HTS221 Humidity: %2.1f\n\n", hts221_getHumid()/10);
+        }
+    else
+        printf("        NO HTS221 detected!!\n");
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #6<<<<<<<<\n");
+    printf("Verify the SPI PMOD interface\n");
+    {
+    MAX31855 max;
+    float v;
+
+    v = max.readThermo(false);
+    printf("    Thermocoupler Temp (F) : %5.2f\n",v);
+    printf("         Internal Temp (F) : %5.2f\n",max.readIntern(false));
+    printf("        Errors encountered : 0x%02X\n\n",max.readError());
+    }
+    printf("Verify that the SPI Thermocoupler info (Temperature and Humidity) was read.\n");
+    printf("depress the 'User' key to continue\n\n");
+    WAIT_FOR_BPRESS; 
+
+    printf(">>>>>>>>Test #7<<<<<<<<\n");
+    printf("Verify LED operations\n");
+    gpio_init( GPIO_PIN_92,  &red_led );
+    gpio_init( GPIO_PIN_101, &green_led );
+    gpio_init( GPIO_PIN_102, &blue_led );
+
+    gpio_dir(red_led,   GPIO_DIR_OUTPUT);
+    gpio_dir(green_led, GPIO_DIR_OUTPUT);
+    gpio_dir(blue_led,  GPIO_DIR_OUTPUT);
+    
     done = 0;
     i = 1;
-    printf( "\n\nCycling through the LED colors\n");
-    sleep(2);
+    printf( "\n\nThis test will cycle through LED all color combinations and will illuminate the WWAN LED.\n");
+    printf( "for a 2 second period, continuously until the 'User' key is depressed.\n");
     while (!done ) {
        set_color((char*)"OFF");
        wwan_io(0);
@@ -892,11 +935,7 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
 
     binary_io_init();
 
-//
-//Test: Display GPS RSSI information
-//Test: Read SPI Pmod: TBD 
-//Test: expansion bus
-
+    printf("This completes the Factory Test Sequence.\n");
 }
 
 
@@ -940,46 +979,21 @@ int command_WWANLED(int argc __attribute__((unused)), const char * const * argv 
 
 int command_spi(int argc __attribute__((unused)), const char * const * argv )
 {
-//    MAX31855 max;
+    MAX31855 max;
+    float v;
+    int Cellius = 1;
 
-//    max.init();
-    printf("Testing MAX31855 not yet implemented.\n");
-//    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(1));
-//    printf("Thermocoupler Temp (F) = %5.2f\n",max.readThermo(0));
-//    printf("Internal Temp (c) = %5.2f\n",max.readIntern(1));
-//    printf("Internal Temp (F) = %5.2f\n",max.readIntern(0));
-//    printf("Errors encountered = 0x%02X\n",max.readError());
+    v = max.readThermo(!Cellius);
+    printf("Thermocoupler Temp (F) = %5.2f\n",v);
+    printf("Errors encountered = 0x%02X\n",max.readError());
+    printf("Internal Temp (F) = %5.2f\n",max.readIntern(!Cellius));
+    printf("Errors encountered = 0x%02X\n\n",max.readError());
+
+    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(Cellius));
+    printf("Errors encountered = 0x%02X\n",max.readError());
+    printf("Internal Temp (c) = %5.2f\n",max.readIntern(Cellius));
+    printf("Errors encountered = 0x%02X\n\n",max.readError());
   
-    spi_handle_t my_spiI=0, my_spiII=0;
-    uint32_t txb, rxb;
-    int i;
-
-    i=spi_bus_init(SPI_BUS_II, &my_spiII);
-    while( i< 0){
-        printf("spi_bus_init(SPI_BUS_II)=%d\n",i);
-        i=spi_bus_init(SPI_BUS_II, &my_spiII);
-        sleep(2);
-        }
-
-    printf("spi_bus_init(SPI_BUS_I)=%d\n",i);
-    i=spi_bus_init(SPI_BUS_II, &my_spiII);
-    printf("spi_bus_init(SPI_BUS_II)=%d\n",i);
-
-// CPOL - Sets the data clock to be idle when high if set to 1, idle when low if set to 0
-// CPHA - Samples data on the falling edge of the data clock when 1, rising edge when 0'
-// 32 bits per word
-    i=spi_format(my_spiI, SPIMODE_CPOL_0_CPHA_0, SPI_BPW_32);
-    printf("spi_format()=%d\n",i);
-
-    i=spi_frequency(my_spiI, 4000000);
-    printf("spi_frequency()=%d\n",i);
-
-    i=spi_transfer(my_spiI, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t));
-    printf("spi_transfer()=%d\n",i);
-
-    spi_bus_deinit(&my_spiI);
-    spi_bus_deinit(&my_spiII);
-
     return 0;
 }
 

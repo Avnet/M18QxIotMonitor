@@ -17,11 +17,11 @@ class MAX31855 {
 
  private:
 
-  int spi_read(void);
-  spi_handle_t my_spi;
-  int16_t thermo_temp;
-  int16_t intern_temp;
-  uint8_t errs;
+  uint32_t readSPI(void);
+  int16_t  thermo_temp;
+  int16_t  intern_temp;
+  uint8_t  errs;
+  int      read31855(void);
 
 };
 

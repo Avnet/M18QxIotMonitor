@@ -56,6 +56,7 @@ sysinfo mySystem;
 int headless=false;
 int headless_timed=0;
 int ft_mode=false;
+int doM2X=false;
 static struct termios oldt, newt;
 
 void my_putchar(const char *c)
@@ -80,8 +81,11 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    while((c=getopt(argc,argv,"rf:d:a:t:l:v:")) != -1 )
+    while((c=getopt(argc,argv,"mrf:d:a:t:l:v:")) != -1 )
         switch(c) {
+           case 'm': //send data to M2X
+               doM2X=true;
+               break;
            case 'r': //factory test
                ft_mode=true;
                break;

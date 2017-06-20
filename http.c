@@ -165,6 +165,7 @@ static int http_put(http_info_t *http_req, const char *url)
 //
 int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr )
 {
+    if( doM2X ) {
 	http_info_t put_req;
 	char tmp_buff[64];
 	char url[256];
@@ -186,6 +187,9 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
 	http_deinit(&put_req);
 
 	return (ret<0)? -1:0;
+        }
+    else
+        return 0;
 }
 
 //
@@ -193,35 +197,38 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
 //
 int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr, const char *stream_value_ptr)
 {
-    http_info_t post_req;
-    char tmp_buff1[256], tmp_buff2[256], tmp_buff3[64];;
-    char url[256];
-    time_t t = time(NULL);;
-    struct tm *tm;
+    if( doM2X ) {
+        http_info_t post_req;
+        char tmp_buff1[256], tmp_buff2[256], tmp_buff3[64];;
+        char url[256];
+        time_t t = time(NULL);;
+        struct tm *tm;
 
-    memset(&post_req, 0, sizeof(http_info_t));
-    memset(tmp_buff1, 0, sizeof(tmp_buff1));
-    memset(tmp_buff2, 0, sizeof(tmp_buff2));
-    memset(url, 0, sizeof(url));
+        memset(&post_req, 0, sizeof(http_info_t));
+        memset(tmp_buff1, 0, sizeof(tmp_buff1));
+        memset(tmp_buff2, 0, sizeof(tmp_buff2));
+        memset(url, 0, sizeof(url));
 
-    tm = localtime(&t);
-    http_init(&post_req, 0);
+        tm = localtime(&t);
+        http_init(&post_req, 0);
 
-    sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s/values", device_id_ptr, stream_name_ptr);
-    sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
-    sprintf(tmp_buff3, "%4d-%02d-%02dT%02d:%02d:%02dZ", (tm->tm_year+1900), (tm->tm_mon+1), tm->tm_mday,
+        sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s/values", device_id_ptr, stream_name_ptr);
+        sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+        sprintf(tmp_buff3, "%4d-%02d-%02dT%02d:%02d:%02dZ", (tm->tm_year+1900), (tm->tm_mon+1), tm->tm_mday,
                                                             tm->tm_hour, tm->tm_min, tm->tm_sec);
-    sprintf(tmp_buff2, "{ \"values\": [ { \"timestamp\": \"%s\", \"value\": %s } ] }", tmp_buff3, stream_value_ptr);
+        sprintf(tmp_buff2, "{ \"values\": [ { \"timestamp\": \"%s\", \"value\": %s } ] }", tmp_buff3, stream_value_ptr);
 
-    post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
-    post_req.header = http_add_field(post_req.header, tmp_buff1);
-    post_req.data_field = http_add_field(post_req.data_field, tmp_buff2);
+        post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
+        post_req.header = http_add_field(post_req.header, tmp_buff1);
+        post_req.data_field = http_add_field(post_req.data_field, tmp_buff2);
 
-    if (http_post(&post_req, url) < 0)
-	return -1;
+        if (http_post(&post_req, url) < 0)
+            return -1;
 
-    http_deinit(&post_req);
+        http_deinit(&post_req);
+        }
     return 0;
+
 }
 
 

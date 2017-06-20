@@ -40,10 +40,10 @@ REGISTER lis2dw12_registers[] = {
     "OUT_T_H",             0, 0x0e,   0,      0,     0,      //1- Temp sensor output
     "WHO_AM_I",            0, 0x0f,   0,     0x44,   0,      //2- Who am I ID
     "CTRL1",               1, 0x20,   0,     0x62,   0,      //3- Control Register
-    "CTRL2",               1, 0x21,   0,     0x08,   0,      //4- Control Register
-    "CTRL3",               1, 0x22,   0,     0x3a,   0,      //5- Control Register
-    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,     0x04,   0,      //6- Control Register
-    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,     0x10,   0,      //7- Control Register
+    "CTRL2",               1, 0x21,   0,     0x0c,   0,      //4- Control Register
+    "CTRL3",               1, 0x22,   0,     0x02,   0,      //5- Control Register
+    "CTRL4_INT1_PAD_CTRL", 1, 0x23,   0,     0x00,   0,      //6- Control Register
+    "CTRL5_INT2_PAD_CTRL", 1, 0x24,   0,     0x00,   0,      //7- Control Register
     "CTRL6",               1, 0x25,   0,      0,     0,      //8- Control Register
     "OUT_T",               0, 0x26,   0,      0,     0,      //9- Temp sensor output
     "STATUS",              0, 0x27,   0,      0,     0,      //10- Status data register
@@ -53,7 +53,7 @@ REGISTER lis2dw12_registers[] = {
     "OUT_Y_H",             0, 0x2b,   0,      0,     0,      //14- Output register
     "OUT_Z_L",             0, 0x2c,   0,      0,     0,      //15- Output register
     "OUT_Z_H",             0, 0x2d,   0,      0,     0,      //16- Output register
-    "FIFO_CTRL",           1, 0x2e,   0,     0xdf,   0,      //17- FIFO controle register
+    "FIFO_CTRL",           1, 0x2e,   0,     0x00,   0,      //17- FIFO controle register
     "FIFO_SAMPLES",        0, 0x2f,   0,      0,     0,      //18- Unread samples stored in FIFO
     "TAP_THS_X",           1, 0x30,   0,      0,     0,      //19- Tap thresholds
     "TAP_THS_Y",           1, 0x31,   0,      0,     0,      //20- Tap thresholds
@@ -361,9 +361,11 @@ void lis2dw12_timer_task(size_t timer_id, void * user_data)
         float inc = acos(ACCZ/rad)*(180/3.1415);
         float az  = atan(ACCY/ACCX)*(180/3.1415);
         printf("\n\nChanged positon!\n");
-        printf("%3d) XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n"
-               "    Polar Coordinates: radius=%5.2f inclination=%5.2f azimuth=%5.2f\n\n", 
-           c++, ACCX, ACCY, ACCZ, rad, inc, az);
+        printf("%3d) XYZ data Avaiable: X=%+5.2f, Y=%+5.2f, Z=%+5.2f\n",
+//               "    Polar Coordinates: radius=%5.2f inclination=%5.2f azimuth=%5.2f\n\n", 
+           c++, ACCX, ACCY, ACCZ 
+//         rad, inc, az
+           );
         }
 }
 
