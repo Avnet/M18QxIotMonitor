@@ -64,9 +64,9 @@ int MAX31855::read31855(void) {
     thermo_temp = ((int32_t)rxval & 0xfffc0000)>>18;    //14-bit temp
     intern_temp = ((int32_t)rxval<<16)>>20;         //12-bit temp
 
-//    printf("read  =0x%08lX\n",rxval);
-//    printf("14-bit=0x%04X\n",thermo_temp);
-//    printf("12-bit=0x%04X\n",intern_temp);
+    printf("read  =0x%08lX\n",rxval);
+    printf("14-bit=0x%04X\n",thermo_temp);
+    printf("12-bit=0x%04X\n",intern_temp);
 
     return -errs;
 }
