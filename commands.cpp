@@ -980,19 +980,25 @@ int command_WWANLED(int argc __attribute__((unused)), const char * const * argv 
 int command_spi(int argc __attribute__((unused)), const char * const * argv )
 {
     MAX31855 max;
-    float v;
-    int Cellius = 1;
+    int err;
 
-    v = max.readThermo(!Cellius);
-    printf("Thermocoupler Temp (F) = %5.2f\n",v);
-    printf("Errors encountered = 0x%02X\n",max.readError());
-    printf("Internal Temp (F) = %5.2f\n",max.readIntern(!Cellius));
-    printf("Errors encountered = 0x%02X\n\n",max.readError());
 
-    printf("Thermocoupler Temp (c) = %5.2f\n",max.readThermo(Cellius));
-    printf("Errors encountered = 0x%02X\n",max.readError());
-    printf("Internal Temp (c) = %5.2f\n",max.readIntern(Cellius));
-    printf("Errors encountered = 0x%02X\n\n",max.readError());
+    printf("Thermocoupler Temp (F) = %5.2f\n", max.readThermo(false));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
+
+    printf("     Internal Temp (F) = %5.2f\n", max.readIntern(false));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
+
+    printf("Thermocoupler Temp (c) = %5.2f\n", max.readThermo(true));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
+
+    printf("     Internal Temp (c) = %5.2f\n",max.readIntern(true));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
+
   
     return 0;
 }
