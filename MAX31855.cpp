@@ -33,9 +33,9 @@ MAX31855::~MAX31855(void) {
 
 uint32_t MAX31855::readSPI(void) 
 {
-    int i;
-    uint32_t     rxb, txb;
+    uint32_t rxb, txb;
 
+    rxb = txb = -1;
     errs = 0;
     if( spi_transfer(myspi, (uint8_t*)&txb, sizeof(uint32_t), (uint8_t*)&rxb, sizeof(uint32_t))<0)
         errs = 0x08;

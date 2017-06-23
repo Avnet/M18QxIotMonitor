@@ -983,14 +983,6 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
     MAX31855 max;
     int err;
 
-    printf("     Internal Temp (F) = %5.2f\n", max.readIntern(false));
-    if( err = max.readError() )
-        printf("    Errors encountered = 0x%02X\n\n",err);
-
-    printf("Thermocoupler Temp (F) = %5.2f\n", max.readThermo(false));
-    if( err = max.readError() )
-        printf("    Errors encountered = 0x%02X\n\n",err);
-
     printf("     Internal Temp (c) = %5.2f\n", max.readIntern(true));
     if( err = max.readError() )
         printf("    Errors encountered = 0x%02X\n\n",err);
