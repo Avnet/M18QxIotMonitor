@@ -180,7 +180,7 @@ char * getModelID(json_keyval *kv, int kvsize) {
         }
     else {
         i = parse_maljson (rstr, kv, kvsize);
-        printf("(received %d key/value pairs):\n", i);
+//        printf("(received %d key/value pairs):\n", i);
         return kv[3].value;    
         }
 }

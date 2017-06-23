@@ -82,6 +82,8 @@ extern int headless;
 extern int doM2X;
 extern int headless_timed;
 extern unsigned int dbg_flag;
+extern int ft_time;
+extern int ft_mode;
 
 extern int command_help(int argc, const char * const * argv );
 extern int command_gpio(int argc, const char * const * argv );

@@ -11,18 +11,19 @@ class MAX31855 {
   ~MAX31855();
 
   void init(void);
+  int    loopbackTest();
   double readThermo(int Celcius);
   double readIntern(int Celcius);
   uint8_t readError();
 
  private:
 
-  uint32_t readSPI(void);
-  int16_t  thermo_temp;
-  int16_t  intern_temp;
-  uint8_t  errs;
-  int      read31855(void);
-
+  spi_handle_t myspi;
+  uint32_t     readSPI(void);
+  int16_t      thermo_temp;
+  int16_t      intern_temp;
+  uint16_t     errs;
+  int          read31855(void);
 };
 
 #endif

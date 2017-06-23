@@ -786,7 +786,7 @@ int command_adc(int argc, const char * const * argv )
     adc_deinit(&my_adc);
 }
 
-
+#if 0
 #define WAIT_FOR_BPRESS {while( !button_press ); while( button_press );}
 
 int command_facttest(int argc __attribute__((unused)), const char *const *argv)
@@ -938,6 +938,7 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     printf("This completes the Factory Test Sequence.\n");
 }
 
+#endif
 
 //  tx2m2x Y X Z  Tx data Y times every X secs from device Z
 int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
@@ -982,12 +983,15 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
     MAX31855 max;
     int err;
 
+    printf("     Internal Temp (F) = %5.2f\n", max.readIntern(false));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
 
     printf("Thermocoupler Temp (F) = %5.2f\n", max.readThermo(false));
     if( err = max.readError() )
         printf("    Errors encountered = 0x%02X\n\n",err);
 
-    printf("     Internal Temp (F) = %5.2f\n", max.readIntern(false));
+    printf("     Internal Temp (c) = %5.2f\n", max.readIntern(true));
     if( err = max.readError() )
         printf("    Errors encountered = 0x%02X\n\n",err);
 
@@ -995,11 +999,14 @@ int command_spi(int argc __attribute__((unused)), const char * const * argv )
     if( err = max.readError() )
         printf("    Errors encountered = 0x%02X\n\n",err);
 
-    printf("     Internal Temp (c) = %5.2f\n",max.readIntern(true));
+    printf("     Internal Temp (F) = %5.2f\n", max.readIntern(false));
     if( err = max.readError() )
         printf("    Errors encountered = 0x%02X\n\n",err);
 
-  
+    printf("Thermocoupler Temp (F) = %5.2f\n", max.readThermo(false));
+    if( err = max.readError() )
+        printf("    Errors encountered = 0x%02X\n\n",err);
+
     return 0;
 }
 

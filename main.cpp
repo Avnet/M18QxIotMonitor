@@ -55,7 +55,8 @@
 sysinfo mySystem;
 int headless=false;
 int headless_timed=0;
-int ft_mode=false;
+int ft_mode=0;
+int ft_time=0;
 int doM2X=false;
 static struct termios oldt, newt;
 
@@ -81,13 +82,14 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    while((c=getopt(argc,argv,"mrf:d:a:t:l:v:")) != -1 )
+    while((c=getopt(argc,argv,"mf:d:a:t:l:v:r:")) != -1 )
         switch(c) {
            case 'm': //send data to M2X
                doM2X=true;
                break;
            case 'r': //factory test
-               ft_mode=true;
+               ft_mode=1;
+               sscanf(optarg,"%d",&ft_time);
                break;
            case 'd': //device_id
                device_id = optarg;
@@ -124,6 +126,10 @@ int main(int argc, char *argv[])
                abort();
            }
 
+    if( ft_mode ) {
+        command_facttest(argc, argv);
+        app_exit();
+        }
     
     c=start_data_service();
     while ( c < 0 ) {
@@ -151,11 +157,6 @@ int main(int argc, char *argv[])
     c=hts221_getDeviceID();
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
-
-    if( ft_mode ) {
-        command_facttest(argc, argv);
-        app_exit();
-        }
 
     if( headless )
         command_headless(argc, argv );

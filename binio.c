@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <time.h>
 #include <sys/types.h>
 #include <nettle/nettle-stdint.h>
 #include <hwlib/hwlib.h>
@@ -54,13 +55,34 @@ void binario_io_close(void)
 }
 
 
-#include <time.h>
+
 void gpio_timer_task(size_t timer_id, void * user_data)
 {
     void lis2dw12_timer_task(size_t timer_id, void * user_data);
     struct timer_node * node = (struct timer_node *)timer_id;
     GPIOPIN *mytimer = (GPIOPIN*)node->user_data;
+    extern int ft_mode;
     int done,i=0;
+
+    if( ft_mode ) {
+        switch(ft_mode) {
+            case 1:
+                gpio_write( mytimer[1].hndl, GPIO_LEVEL_LOW );
+                gpio_write( mytimer[0].hndl, GPIO_LEVEL_HIGH );
+                break;
+            case 2:
+                gpio_write( mytimer[0].hndl, GPIO_LEVEL_LOW );
+                gpio_write( mytimer[2].hndl, GPIO_LEVEL_HIGH );
+                break;
+            case 3:
+                gpio_write( mytimer[2].hndl, GPIO_LEVEL_LOW );
+                gpio_write( mytimer[1].hndl, GPIO_LEVEL_HIGH );
+                break;
+            }
+        if( ++ft_mode > 3)
+            ft_mode = 1;
+        return;
+        }
 
     do {
         done = ((mytimer[i]).timr == timer_id);
@@ -71,12 +93,12 @@ void gpio_timer_task(size_t timer_id, void * user_data)
 
     const time_t t = time(0);
 
+    mytimer[i].val = !mytimer[i].val;  //toggle the value
+    done=gpio_write( mytimer[i].hndl, mytimer[i].val );
     if( dbg_flag & DBG_BINIO ) {
         printf("-BINIO: (%d) Toggle GPIO pin GPIO_PIN_",mytimer[i].timr);
-        printf("-BINIO: %d/%d, Rate=%d, Value=%d : %s",mytimer[i].nbr,i,mytimer[i].rate,mytimer[i].val,asctime(localtime(&t)));
+        printf("%d/%d, Rate=%d, Value=%d(%d) : %s",mytimer[i].nbr,i,mytimer[i].rate,mytimer[i].val,done,asctime(localtime(&t)));
         }
-    (mytimer[i]).val = !(mytimer[i]).val;  //toggle the value
-    gpio_write( (mytimer[i]).hndl, (mytimer[i]).val );
     lis2dw12_timer_task(0,NULL);
 }
 
