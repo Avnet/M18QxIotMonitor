@@ -186,7 +186,11 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
 
     printf("\n---- I2C Test 5 ------------------------------\n");
     printf("I2C: LIS2DW12 ID   = 0x%02X\n", lis2dw12_getDeviceID());
-    printf("I2C: PMOD/HTS ID   = 0x%02X\n", hts221_getDeviceID());
+    printf("I2C: PMOD/HTS ID   = ");
+    if( (i=hts221_getDeviceID()) == 0xff )
+        printf("FAIL\n");
+    else
+        printf("0x%02X\n",i);
 
     printf("\n---- SPI Test 6 ------------------------------\n");
     printf("SPI: PMOD Result   = %s\n", max31855.loopbackTest()?"PASS":"FAIL");

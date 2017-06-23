@@ -142,7 +142,7 @@ uint8_t hts221_MeasurComplete(void) {
 }
  
 uint8_t hts221_getDeviceID(void) {
-    return hts221_read_byte(HTS221_REG_WHO_AM_I);
+    return (hts221_read_byte(HTS221_REG_WHO_AM_I) != HTS221_DEVICE_ID)?-1:HTS221_DEVICE_ID;
 }
 
 
