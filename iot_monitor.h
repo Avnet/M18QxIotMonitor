@@ -38,10 +38,10 @@
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")
 
-#define DEFAULT_DEVICE_ID	"2ac9dc89132469eb809bea6e3a95d675"
-#define DEFAULT_API_KEY         "6cd9c60f4a4e5d91d0ec4cc79536c661"
-#define DEFAULT_TEMP_API_STREAM "temp"
-#define DEFAULT_ADC_API_STREAM  "light_sens"
+#define DEFAULT_DEVICE_ID	"e83cdd8645ab1a7c0c480156efbf78f6"
+#define DEFAULT_API_KEY         "4d7e1da7f05c3fa4d5426419891a254d"
+#define DEFAULT_TEMP_API_STREAM (char*)"temp"
+#define DEFAULT_ADC_API_STREAM  (char*)"light_sens"
 
 //#define my_debug(x,...)	!headless?printf("DBG:" x,##__VA_ARGS__):(__VA_ARGS__);
 #define my_debug(x,...)	(__VA_ARGS__);
@@ -71,8 +71,9 @@ typedef struct {
 
 extern const char *device_id;
 extern const char *api_key;
-extern const char *temp_stream_name;
-extern const char *adc_stream_name;
+extern char *temp_stream_name;
+extern char *adc_stream_name;
+extern char *demo_url;
 
 extern char* strupr(char* s);
 

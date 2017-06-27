@@ -8,6 +8,8 @@
 #include "iot_monitor.h"
 #include "http.h"
 
+void wnctest(void);
+
 typedef struct _http_info_s {
 	CURL *curl;
 	const char *url;
@@ -177,14 +179,21 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
 
 	http_init(&put_req, 0);
 
-	sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s", device_id_ptr, stream_name_ptr);
-	sprintf(tmp_buff, "X-M2X-KEY: %s", api_key_ptr);
+	sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s", 
+                      device_id_ptr, stream_name_ptr );
+	sprintf(tmp_buff, "\"X-M2X-KEY:%s\"", api_key_ptr);
 
-	put_req.header = http_add_field(put_req.header, "Content-Type: application/json");
+	put_req.header = http_add_field(put_req.header, " Content-Type: application/json ");
 	put_req.header = http_add_field(put_req.header, tmp_buff);
 
         ret=http_put(&put_req, url);
 	http_deinit(&put_req);
+        if( dbg_flag & DBG_M2X ) {
+            printf("\n\n\ncreate_stream\n");
+            printf("sending to URL: %s\n", url);
+            printf("%s\n",tmp_buff);
+            printf("Content-Type: application/json");
+            }
 
 	return (ret<0)? -1:0;
         }
@@ -226,6 +235,13 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
             return -1;
 
         http_deinit(&post_req);
+        if( dbg_flag & DBG_M2X ) {
+            printf("\n\n\nupdate_stream_value\n", url);
+            printf("sending to URL: %s\n", url);
+            printf("Content-Type: application/json");
+            printf("%s\n", tmp_buff1);
+            printf("%s\n", tmp_buff2);
+            }
         }
     return 0;
 
@@ -300,7 +316,7 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
     memset(tmp_buff1, 0, sizeof(tmp_buff1));
     memset(url, 0, sizeof(url));
 
-    http_init(&get_req, 0);
+    http_init(&get_req, 1);
 
     sprintf(url, "%s/%s?serial=%s%s", flow_base_url, flow_input_name, flow_device_name, get_cmd);
     get_req.header = http_add_field(get_req.header, tmp_buff1);
@@ -328,7 +344,7 @@ char *flow_get ( const char *flow_base_url, const char *flow_input_name,
 //
 // This function is called to update a LED COLOR value.
 //
-//curl -i -X PUT http://api-m2x.att.com/v2/devices/2ac9dc89132469eb809bea6e3a95d675/streams/rgb/value 
+//curl -i -X PUT https://api-m2x.att.com/v2/devices/2ac9dc89132469eb809bea6e3a95d675/streams/rgb/value 
 //     -H "X-M2X-KEY: 6cd9c60f4a4e5d91d0ec4cc79536c661" 
 //     -H "Content-Type: application/json" 
 //     -d "{ \"value\": \"WHITE\" }"
@@ -344,7 +360,7 @@ int m2x_update_color_value ( const char *device_id_ptr, const char *api_key_ptr,
     memset(tmp_buff2, 0, sizeof(tmp_buff2));
     memset(url, 0, sizeof(url));
 
-    http_init(&put_req, 0);
+    http_init(&put_req, 1);
 
     sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s/value", device_id_ptr, stream_name_ptr);
     sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);

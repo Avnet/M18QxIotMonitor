@@ -72,8 +72,8 @@ microrl_t *prl = &rl;
 
 const char *device_id        = DEFAULT_DEVICE_ID;
 const char *api_key          = DEFAULT_API_KEY;
-const char *adc_stream_name  = DEFAULT_ADC_API_STREAM;
-const char *temp_stream_name = DEFAULT_TEMP_API_STREAM;
+char *adc_stream_name  = (char*)DEFAULT_ADC_API_STREAM;
+char *temp_stream_name = (char*)DEFAULT_TEMP_API_STREAM;
 
 const cmd_entry mon_command_table[] =
   {

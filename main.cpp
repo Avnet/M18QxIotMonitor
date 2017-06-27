@@ -57,7 +57,7 @@ int headless=false;
 int headless_timed=0;
 int ft_mode=0;
 int ft_time=0;
-int doM2X=false;
+int doM2X=true;
 static struct termios oldt, newt;
 
 void my_putchar(const char *c)
@@ -66,6 +66,34 @@ void my_putchar(const char *c)
 }
 
 unsigned int dbg_flag = 0;
+
+void usage (void)
+{
+    printf(" The 'iot_monitor' program can be started with several options:\n");
+    printf(" -m  : Disable sending data to M2X.  Used during execution of Demo application\n");
+    printf(" -r #: Perform Factory Test Mode, ensure test runs for # seconds to observe LEDs\n");
+    printf(" -d X: Set the Device id to 'X'\n");
+    printf(" -a X: Set the API key to 'X'\n");
+    printf(" -l X: Set the ADC Stream name\n");
+    printf(" -t X: Set the Temp Stream name\n");
+    printf(" -u X: Set the Demo application URL to 'X'\n");
+    printf(" -v X: Display debug info for 'X', where 'X' is a bit field composed of:\n");
+    printf("          1 = CURL \n");
+    printf("          2 = FLOW \n");
+    printf("          4 = M2X \n");
+    printf("         10 = TIMER\n");
+    printf("         20 = LIS2DW12\n");
+    printf("         40 = HTS221\n");
+    printf("        100 = BINIO\n");
+    printf("        200 = MAL \n");
+    printf("        400 = DEMO\n");
+    printf("        800 = I2C\n");
+    printf("       1000 = SPI\n");
+    printf("       NOTE: values can be combined, e.g., 23 is LIS2DW12+FLOW+CURL\n");
+    printf(" -f #: Run the Demo application. Loop every # seconds\n");
+    printf(" -?  : Display usage info\n");
+}
+
 
 int main(int argc, char *argv[]) 
 {
@@ -82,10 +110,11 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    while((c=getopt(argc,argv,"mf:d:a:t:l:v:r:")) != -1 )
+    while((c=getopt(argc,argv,"?mf:d:a:t:l:v:r:u:s:")) != -1 )
         switch(c) {
            case 'm': //send data to M2X
-               doM2X=true;
+               printf("-disable M2X transmissions\n");
+               doM2X=false;
                break;
            case 'r': //factory test
                ft_mode=1;
@@ -107,19 +136,27 @@ int main(int argc, char *argv[])
                temp_stream_name = optarg;
                printf("-setting Stream Name to [%s]\n",temp_stream_name);
                break;
+           case 'u':
+               doM2X=false;
+               sscanf(optarg,"%x",&demo_url);
+               printf("-setting Demo URL to [%s]\n",demo_url);
+               break;
            case 'v':
                sscanf(optarg,"%x",&dbg_flag);
                printf("-debug flag set to 0x%04X\n",dbg_flag);
                break;
            case 'f':
                headless=true;
+               doM2X=false;
                sscanf(optarg,"%d",&headless_timed);
                break;
            case '?':
                if (optopt == 'a' || optopt == 's' ||optopt == 'd')
                  fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+               else if (optopt == '\0')
+                   usage();
                else
-                 fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+                   fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
                app_exit();
 
            default:
@@ -188,4 +225,5 @@ void app_exit(void)
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
     exit(EXIT_SUCCESS);
 }
+
 
