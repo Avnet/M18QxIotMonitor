@@ -152,57 +152,7 @@ unsigned int ascii_to_epoch(char *epoch_ascii)
 
 void sendGPS(void)
 {
-#if 0
-    char cmd[512], resp[512];
-    struct tm gps_time;
-    json_keyval om[12];
-    int alt, k, done, i, intfmt, strfmt;
-    float lat, lng;
-    char gpstime[80];
-
-    printf("Getting GPS information...\n");
-    setGPSmode(4);
-    getGPSconfig(om,sizeof(om));
-    enableGPS();
-    done = 0;
-    while( !done ) {
-        k=i=getGPSlocation(om,sizeof(om));
-        done = atoi(om[3].value);
-        for( i=1, intfmt=strfmt=0; i<k; i++ ) {
-            if( !strcmp(om[i].key,"loc_status") )
-                printf("Status: %s\n",atoi(om[i].value)?"COMPLETED\n":"IN PROGRESS");
-            else if( !strcmp(om[i].key,"latitude") )
-                lat = atof(om[i].value);
-            else if( !strcmp(om[i].key,"longitude") )
-                lng= atof(om[i].value);
-            else if( !strcmp(om[i].key,"timestamp") ) {
-                time_t rawtime = ascii_to_epoch(om[i].value);
-                struct tm *ts = localtime(&rawtime);
-                strftime(gpstime, sizeof(gpstime), "%a/%d%m%Y/%H-%M-%S%Z", ts);
-                }
-            else if( !strcmp(om[i].key,"altitude") )
-                alt = atoi(om[i].value);
-            else if( !strcmp(om[i].key,"speed") )
-                ;
-            else if( !strcmp(om[i].key,"accuracy") )
-                ;
-            else if( !strcmp(om[i].key,"errno") ) {
-                if( atoi(om[i].value) )
-                    printf("GPS ERROR! %d\n",atoi(om[i].value));
-                }
-            else if( !strcmp(om[i].key,"errmsg") ) {
-                if( strcmp(om[i].value,"<null>") )
-                    printf("GPS ERROR MESSAGE: %s\n",om[i].value);
-                }
-            else
-                printf("(%2d) KEY=%s ; VALUE=%s\n",i,om[i].key,om[i].value);
-            }
-        sleep(5);
-        }
-    disableGPS();
-#endif
     memset(gps_cmd, 0x00, sizeof(gps_cmd));
-//    sprintf(gps_cmd,"&LAT=%f&LONG=%f&ALT=%d&TIME=%s", lat, lng, alt, gpstime);
     sprintf(gps_cmd,"&LAT=51.04427&LONG=-114.062019&ALT=3438");
 
     if (dbg_flag & DBG_DEMO)
@@ -213,7 +163,6 @@ void sendGPS(void)
 int command_demo_mode(int argc, const char * const * argv )
 {
     int start_data_service(void);
-    void set_m2xColor( char *);
     void wwan_io(int);
     char cmd[1024], resp[1024];
     char color[10];
@@ -248,7 +197,6 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
     button_press = 0;
 
-//    start_data_service();
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
@@ -282,30 +230,14 @@ int command_demo_mode(int argc, const char * const * argv )
         flow_get ( demo_url, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
-//        elapse += (((end.tv_sec - start.tv_sec)*1000) + (end.tv_usec/1000 - start.tv_usec/1000));
-//        dly = ((headless_timed*1000)-round(elapse))/1000;
-
-//        printf("FLOW Calls took %5.2f seconds--",elapse/1000);
-//        if( dly < 0) {
-//            printf("Which exceeded your delay request of %d seconds continue\n",headless_timed);
-//            dly = 0;
-//            }
-//        else
-//            printf( "wait %d secs\n",dly);
 
         if (dbg_flag & DBG_DEMO)
             printf("-Demo: flow said: %s\n",resp);
         color[strlen(color)-2] = 0x00;
         set_color("OFF");
-        set_m2xColor(color);
         set_color(color);
 
-        if( headless_timed ) {
-//            if( dly > 0)
-//                sleep(dly);
-            }
-        else
-            while( !button_press ); /* wait for a button press */
+        while( !button_press ); /* wait for a button press */
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
