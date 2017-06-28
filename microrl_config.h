@@ -68,7 +68,7 @@ Autor: Eugene Samoylov aka Helius (ghelius@gmail.com)
 
 // /*
 // Enable 'interrupt signal' callback, if user press Ctrl+C */
-#define _USE_CTLR_C
+//#define _USE_CTLR_C
 
 // /*
 // Print prompt at 'microrl_init', if enable, prompt will print at startup, 

@@ -51,14 +51,19 @@
 #include "lis2dw12.h"
 #include "binio.h"
 
-static struct termios oldt, newt;
+static struct termios oldt, newt; //used to store and change the terminal attributes during program usage
 
-void my_putchar(const char *c)
+//
+// This function is used to output data to the terminal as it is typed
+//
+static void my_putchar(const char *c)
 {
     printf("%s",c);
 }
 
-
+//
+// display quick usage overview of how to use iot_monitor
+//
 void usage (void)
 {
     printf(" The 'iot_monitor' program can be started with several options:\n");
@@ -206,12 +211,20 @@ int main(int argc, char *argv[])
     }
 }
 
+
+//
+// Because can be used by both C++ and C files, make sure to define it as a C
+// function. all it does is output a BS to the terminal. Its intended usage is
+// when asyncronus message text is output to the user.  This will help restore
+// the prompt for the user to avoid confusion.
+//
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void doNewLine(void)
 {
+    microrl_insert_char(prl, ' ');
     microrl_insert_char(prl, KEY_BS);
 }
 
