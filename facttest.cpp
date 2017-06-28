@@ -102,14 +102,6 @@ int gpio_ftirq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
     return 0;
 }
 
-void purty(void) 
-{
-    char p[6] = {'/', '-', '\\', '/', '-', '\\'};
-    printf("%c\r",p[idx]);
-    idx = ++idx % 6;
-}
-
-
 int command_facttest(int argc __attribute__((unused)), const char *const *argv)
 {
     extern GPIOPIN_IN gpio_input;

@@ -844,7 +844,7 @@ int command_apikey(int argc, const char * const * argv )
 {
     if( strlen(argv[1]) )
         strcpy(api_key, (char*)argv[1]);
-    printf("Set API KEY to: %s\n",api_key);
+    printf("  Set API KEY to: %s\n",api_key);
 }
 
 int command_pause(int argc, const char * const * argv )
