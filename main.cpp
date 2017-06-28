@@ -43,21 +43,14 @@
 
 #include <string>
 
+#include "iot_monitor.h"
 #include "MyBuffer.hpp"
 #include "microrl_config.h"
 #include "microrl.h"
-#include "iot_monitor.h"
 #include "hts221.h"
 #include "lis2dw12.h"
 #include "binio.h"
 
-
-sysinfo mySystem;
-int headless=false;
-int headless_timed=0;
-int ft_mode=0;
-int ft_time=0;
-int doM2X=true;
 static struct termios oldt, newt;
 
 void my_putchar(const char *c)
@@ -65,7 +58,6 @@ void my_putchar(const char *c)
     printf("%s",c);
 }
 
-unsigned int dbg_flag = 0;
 
 void usage (void)
 {
@@ -110,6 +102,9 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
+    strcpy(device_id,  DEFAULT_DEVICE_ID);
+    strcpy(api_key,  DEFAULT_API_KEY);
+
     while((c=getopt(argc,argv,"?mf:d:a:t:l:v:r:u:s:")) != -1 )
         switch(c) {
            case 'm': //send data to M2X
@@ -121,11 +116,11 @@ int main(int argc, char *argv[])
                sscanf(optarg,"%d",&ft_time);
                break;
            case 'd': //device_id
-               device_id = optarg;
+               strcpy(device_id, optarg);
                printf("-setting Device ID to [%s]\n",device_id);
                break;
            case 'a': //api_key
-               api_key = optarg;
+               strcpy(api_key, optarg);
                printf("-setting API Key to [%s]\n",api_key);
                break;
            case 'l': //light sensor stream_name
@@ -210,6 +205,19 @@ int main(int argc, char *argv[])
         microrl_insert_char(prl, c);
     }
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void doNewLine(void)
+{
+    microrl_insert_char(prl, KEY_BS);
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 
 //

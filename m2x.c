@@ -60,6 +60,7 @@ void tx2m2x_timer(size_t timer_id, void * user_data)
 
 void do_hts2m2x(void)
 {
+    void doNewLine();
     float adc_voltage;
     char str_adc_voltage[16];
     
@@ -67,22 +68,24 @@ void do_hts2m2x(void)
         printf("-M2X: Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n", 
                 device_id, api_key, temp_stream_name);
 
-    m2x_create_stream(device_id, api_key, "humid");
+    m2x_create_stream(device_id, api_key, temp_stream_name);
 
     adc_voltage = hts221_getTemp();
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
     sprintf(str_adc_voltage, "%f", adc_voltage);
     m2x_update_stream_value(device_id, api_key, temp_stream_name, str_adc_voltage);		
 
-
     if( dbg_flag & DBG_M2X )
         printf("-M2X: Tx HTS221 M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
                 device_id, api_key, "humid");
+
+    m2x_create_stream(device_id, api_key, "humid");
     adc_voltage = hts221_getHumid()/10;
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
     sprintf(str_adc_voltage, "%f", adc_voltage);
     m2x_update_stream_value(device_id, api_key, "humid", str_adc_voltage);		
-
+    printf("HTS221 Data sent.\n");
+    doNewLine();
 }
 
 
@@ -170,7 +173,8 @@ void do_adc2m2x(void)
     m2x_update_stream_value(device_id, api_key, adc_stream_name, str_adc_voltage);		
 
     adc_deinit(&my_adc);
-    printf("\n");
+    printf("ADC Data sent.\n");
+    doNewLine();
 }
 
 //
@@ -189,6 +193,7 @@ void set_m2xColor(char *color)
     m2x_update_color_value (device_id, api_key, "rgb", color);		
 
     printf("\n");
+    doNewLine();
 }
 
 void do_lis2dw2m2x(void)
@@ -224,7 +229,8 @@ void do_lis2dw_temp(int f, void *val)
         m2x_update_stream_value(device_id, api_key, int_stream_name, str_val);		
         }
 
-    printf("\n");
+    printf("LIS2DW12 Data sent.\n");
+    doNewLine();
 }
 
 void do_lis2dw_xyz(char **ptr)
@@ -251,6 +257,7 @@ void do_lis2dw_xyz(char **ptr)
     m2x_update_stream_value(device_id, api_key, Zstream_name, ptr[2]);		
 
     printf("\n");
+    doNewLine();
 }
 
 

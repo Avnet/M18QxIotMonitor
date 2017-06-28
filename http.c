@@ -1,5 +1,5 @@
-
 #include <stdio.h>
+#include <stdlib.h>
 #include <curl/curl.h>
 #include <time.h>
 #include <string.h>
@@ -10,6 +10,8 @@
 
 void wnctest(void);
 
+#define RXMSG_SIZE	250
+
 typedef struct _http_info_s {
 	CURL *curl;
 	const char *url;
@@ -17,6 +19,8 @@ typedef struct _http_info_s {
 	struct curl_slist *data_field;
 	struct curl_slist *last_data;
 	size_t total_len;
+        char *rx_msg;
+        size_t rx_msglen; 
 } http_info_t;
 
 static int rsize;
@@ -34,6 +38,8 @@ static int http_deinit(http_info_t *req)
         req->data_field = NULL; 
         } 
     curl_easy_cleanup(req->curl); 
+    free(req->rx_msg);
+    req->rx_msglen=0;
     return 0;
 }
 
@@ -51,6 +57,9 @@ static int http_init(http_info_t *http_req, const int is_https)
 
     if( dbg_flag & DBG_CURL )
         curl_easy_setopt(http_req->curl, CURLOPT_VERBOSE, 1L);
+    http_req->rx_msg   = malloc(RXMSG_SIZE);
+    http_req->rx_msglen= 0;
+    
     return 0;
 }
 
@@ -68,6 +77,30 @@ static int http_field_len(struct curl_slist *ptr)
     for(sl=ptr; sl!=NULL ; sl = sl->next) 
         len += strlen(sl->data); 
     return len;
+}
+
+//
+// This is setup so userp points to the callers http_info_t structure, this contains the
+// pointer to the data buffer and buffer length.
+//
+// buff_len always points to the end of the current buffer data
+//
+
+size_t http_write_callback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    http_info_t *http_req = (http_info_t *)userp;
+    size_t chunk_size = (nmemb*size)+1;       //+1 to hold the NULL at the end
+    size_t inptr = http_req->rx_msglen;
+        char *rx_msg;
+
+    if( (inptr + chunk_size) > http_req->rx_msglen ) 
+        http_req->rx_msg = realloc(http_req->rx_msg, inptr+chunk_size);
+
+    memcpy(&(http_req->rx_msg[inptr]), contents, chunk_size);
+    http_req->rx_msg[chunk_size] = 0x00;
+//printf("JIM4: %s\n",http_req->rx_msg);
+
+    return (http_req->rx_msglen = (inptr+chunk_size)-1);  //don't include trailing NULL in length
 }
 
 
@@ -89,6 +122,10 @@ size_t http_callback(struct curl_slist *req, size_t total_len, char *buffer, siz
             break;
             }
         memcpy(&buffer[to_copy], sl->data, len);
+        if( dbg_flag & DBG_M2X ) {
+            printf("\nSENDING DATA: ");
+            for(int i=0; i<len; i++) printf("%c",sl->data[i]); printf("\n");
+            }
         to_copy += len;
         }
     total_len -= to_copy;
@@ -118,9 +155,11 @@ static int http_post(http_info_t *http_req, const char *url)
     	return -1;
 
     curl_easy_setopt(http_req->curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
     curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
+    curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
     curl_easy_setopt(http_req->curl, CURLOPT_READFUNCTION, http_post_read_callback);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, (void *)http_req);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, http_write_callback);
     curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
 
     http_req->total_len = http_field_len(http_req->data_field);
@@ -146,9 +185,11 @@ static int http_put(http_info_t *http_req, const char *url)
         return -1;
 
     curl_easy_setopt(http_req->curl, CURLOPT_PUT, 1L);
-    curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
     curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
+    curl_easy_setopt(http_req->curl, CURLOPT_READDATA, (void *)http_req);
     curl_easy_setopt(http_req->curl, CURLOPT_READFUNCTION, http_upload_read_callback);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, (void *)http_req);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, http_write_callback);
     curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
 
     http_req->total_len = http_field_len(http_req->data_field);
@@ -167,38 +208,40 @@ static int http_put(http_info_t *http_req, const char *url)
 //
 int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr )
 {
+    int ret =0;
     if( doM2X ) {
 	http_info_t put_req;
 	char tmp_buff[64];
+	char tmp_buff2[64];
 	char url[256];
-        int  ret;
 
 	memset(&put_req, 0, sizeof(http_info_t));
 	memset(tmp_buff, 0, sizeof(tmp_buff));
+	memset(tmp_buff2, 0, sizeof(tmp_buff2));
 	memset(url, 0, sizeof(url));
 
 	http_init(&put_req, 0);
 
-	sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s", 
-                      device_id_ptr, stream_name_ptr );
-	sprintf(tmp_buff, "\"X-M2X-KEY:%s\"", api_key_ptr);
+	sprintf(url, "http://api-m2x.att.com/v2/devices/%s/streams/%s", device_id_ptr, stream_name_ptr );
+	sprintf(tmp_buff, "X-M2X-KEY:%s", api_key_ptr);
 
-	put_req.header = http_add_field(put_req.header, " Content-Type: application/json ");
 	put_req.header = http_add_field(put_req.header, tmp_buff);
+	put_req.header = http_add_field(put_req.header, "Content-Type: application/json");
 
-        ret=http_put(&put_req, url);
-	http_deinit(&put_req);
         if( dbg_flag & DBG_M2X ) {
             printf("\n\n\ncreate_stream\n");
-            printf("sending to URL: %s\n", url);
-            printf("%s\n",tmp_buff);
-            printf("Content-Type: application/json");
+            printf("JIM: %s\n", url);
+            printf("JIM: %s\n",tmp_buff);
             }
 
-	return (ret<0)? -1:0;
+        ret=http_put(&put_req, url);
+        if( put_req.rx_msglen >0) {
+            if( strcmp(put_req.rx_msg,"{\"status\":\"accepted\"}") )
+                printf("\nUNEXPECTED REPLY WAS: %s\n",put_req.rx_msg);
+            }
+	http_deinit(&put_req);
         }
-    else
-        return 0;
+    return ret;
 }
 
 //
@@ -206,6 +249,8 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
 //
 int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr, const char *stream_value_ptr)
 {
+    int ret = 0;
+
     if( doM2X ) {
         http_info_t post_req;
         char tmp_buff1[256], tmp_buff2[256], tmp_buff3[64];;
@@ -231,10 +276,6 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
         post_req.header = http_add_field(post_req.header, tmp_buff1);
         post_req.data_field = http_add_field(post_req.data_field, tmp_buff2);
 
-        if (http_post(&post_req, url) < 0)
-            return -1;
-
-        http_deinit(&post_req);
         if( dbg_flag & DBG_M2X ) {
             printf("\n\n\nupdate_stream_value\n", url);
             printf("sending to URL: %s\n", url);
@@ -242,8 +283,14 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
             printf("%s\n", tmp_buff1);
             printf("%s\n", tmp_buff2);
             }
+        ret = http_post(&post_req, url);
+        if( post_req.rx_msglen >0) {
+            if( strcmp(post_req.rx_msg,"{\"status\":\"accepted\"}") )
+                printf("\nUNEXPECTED REPLY WAS: %s\n",post_req.rx_msg);
+            }
+        http_deinit(&post_req);
         }
-    return 0;
+    return ret;
 
 }
 

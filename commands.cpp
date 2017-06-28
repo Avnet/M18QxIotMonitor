@@ -1,5 +1,7 @@
 
 
+#define _DATADEF_ 1
+
 #include <unistd.h>
 #include <cctype>
 #include <cstddef>
@@ -70,10 +72,51 @@ char ** (*complete_cb)(int, const char* const*),  //call back for command line c
 microrl_t rl;
 microrl_t *prl = &rl;
 
-const char *device_id        = DEFAULT_DEVICE_ID;
-const char *api_key          = DEFAULT_API_KEY;
+char device_id[50];
+char api_key[50];
 char *adc_stream_name  = (char*)DEFAULT_ADC_API_STREAM;
 char *temp_stream_name = (char*)DEFAULT_TEMP_API_STREAM;
+sysinfo mySystem;
+int headless=false;
+int headless_timed=0;
+int ft_mode=0;
+int ft_time=0;
+int doM2X=true;
+unsigned int dbg_flag = 0;
+
+int command_help(int argc, const char * const * argv );
+int command_gpio(int argc, const char * const * argv );
+int command_blink(int argc, const char * const * argv );
+int command_sndat(int argc, const char * const * argv );
+int command_facttest(int argc, const char * const * argv );
+int command_hts221(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv );
+int command_lis2dw(int argc __attribute__((unused)), const char * const * argv );
+int command_spi(int argc __attribute__((unused)), const char * const * argv );
+int command_i2cpeek(int argc, const char * const * argv );
+int command_i2cpoke(int argc, const char * const * argv );
+int command_peek(int argc, const char * const * argv );
+int command_poke(int argc, const char * const * argv );
+int command_comscmd(int argc, const char * const * argv);
+int command_http_put(int argc, const char * const * argv);
+int command_http_get(int argc, const char * const * argv);
+int command_iotmon(int argc, const char * const * argv );
+int command_wnctest(int argc, const char * const * argv );
+int command_tx2m2x(int argc, const char * const * argv );
+int command_WNCInfo(int argc, const char * const * argv );
+int command_WWANStatus(int, char const* const*);
+int command_WWANLED(int, char const* const*);
+int command_gps(int argc, const char * const * argv );
+int command_adc(int argc, const char * const * argv );
+int command_exit(int, char const* const*);
+int command_dbg(int argc, const char * const * argv );
+int command_devid(int argc, const char * const * argv );
+int command_apikey(int argc, const char * const * argv );
+int command_pause(int argc, const char * const * argv );
+
+void do_hts2m2x(void);
+
+void sigint_cb (void);
 
 const cmd_entry mon_command_table[] =
   {
@@ -111,6 +154,8 @@ const cmd_entry mon_command_table[] =
      "wnc           Enters WNC testing command mode",                                           command_wnctest,
   0, "DODEMO",      
      "dodemo        Run the Demo Program (hold user key for > 3 sedonds to return to monitor)", command_demo_mode,
+  0, "PAUSE",      
+     "pause X       Pause program execution for # seconds",                                     command_pause,
   0, "EXIT",        
      "exit          End Program execution",                                                     command_exit
   };
@@ -126,41 +171,14 @@ const cmd_entry fac_command_table[] =
   0, "WWANSTAT",    "wwanstat      Displays the WWAN status information",      command_WWANStatus,
   0, "WWAN_LED",    "wwan_led 0/1  Disable/Enable the WWAN LED",               command_WWANLED,
   0, "TX2M2X",      "tx2m2x Y X Z  Tx data Y times every X secs from device Z",command_tx2m2x, 
+  0, "DEVID",       "devid <ID>    Set Device id to <ID>",                     command_devid,
+  0, "APIKEY",      "apikey <KEY>  Set a Primary API Key to <KEY>",            command_apikey,
   0, "MON",         "mon           Enter interactive monitor mode",            command_iotmon,
+  0, "DEBUG",       "DEBUG X V     Set or Clear debug flag ",                  command_dbg,
+  0, "PAUSE",       "Pause #       program execution for # seconds ",          command_pause,
   0, "EXIT",        "exit          End Program execution",                     command_exit
   };
 #define _MAX_IOTCOMMANDS	(sizeof(fac_command_table)/sizeof(cmd_entry))
-
-int command_help(int argc, const char * const * argv );
-int command_gpio(int argc, const char * const * argv );
-int command_blink(int argc, const char * const * argv );
-int command_sndat(int argc, const char * const * argv );
-int command_facttest(int argc, const char * const * argv );
-int command_hts221(int argc __attribute__((unused)), const char * const * argv );
-int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv );
-int command_lis2dw(int argc __attribute__((unused)), const char * const * argv );
-int command_spi(int argc __attribute__((unused)), const char * const * argv );
-int command_i2cpeek(int argc, const char * const * argv );
-int command_i2cpoke(int argc, const char * const * argv );
-int command_peek(int argc, const char * const * argv );
-int command_poke(int argc, const char * const * argv );
-int command_comscmd(int argc, const char * const * argv);
-int command_http_put(int argc, const char * const * argv);
-int command_http_get(int argc, const char * const * argv);
-int command_iotmon(int argc, const char * const * argv );
-int command_wnctest(int argc, const char * const * argv );
-int command_tx2m2x(int argc, const char * const * argv );
-int command_WNCInfo(int argc, const char * const * argv );
-int command_WWANStatus(int, char const* const*);
-int command_WWANLED(int, char const* const*);
-int command_gps(int argc, const char * const * argv );
-int command_adc(int argc, const char * const * argv );
-int command_exit(int, char const* const*);
-int command_dbg(int argc, const char * const * argv );
-
-void do_hts2m2x(void);
-
-void sigint_cb (void);
 
 cmd_entry *current_table = NULL;		//maintain a pointer to the active commands
 
@@ -222,7 +240,7 @@ void print_banner(void) {
   printf("                                    Reach Further\n");
   printf("\n");
   printf(" AVNET - AT&T Global Module IoT Monitor\n");
-  printf(" Version 00.99 // 05-3/2017\n");
+  printf(" Version %5.2f // %s\n",VER,VER_DATE);
   printf(" Hardware Supported: WNC M18Qx Cellular Data Module\n");
   printf("----------------------------------------------------------------------------\n");
   
@@ -791,23 +809,50 @@ int command_tx2m2x(int argc __attribute__((unused)), const char * const * argv )
 {
     char*  sensor=NULL;
     int    i, interval;
-    int    iterations;
+    int    done, iterations;
 
+    done=0;
     if( argc == 4 ) {
         sensor    = (char*)argv[3]; 
-        interval  = (unsigned char)atoi(argv[2]);  //frequency in seconds
+        interval  = (unsigned char)atoi(argv[2]);     //frequency in seconds
         iterations  = (unsigned char)atoi(argv[1]);   //nbr of times to send data
         }
     if( sensor != NULL ) {
         for (i=0; i<_max_m2xfunctions; i++) {
-            if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) )
+            if ( !strcmp((m2xfunctions[i]).name,strupr(sensor)) ) {
                 (m2xfunctions[i]).func(interval, iterations);
+                done=1;
+                }
             }
         }
-    else {
+    if( !done ){
         printf("Need to specify a sensor, one of:\n");
         for (i=0; i<_max_m2xfunctions-1; i++) 
             printf(" - %s\n",(m2xfunctions[i]).name);
+        printf("Command Format: tx2m2x <count> <frequency> <sensor>\n");
+        }
+}
+
+int command_devid(int argc, const char * const * argv )
+{
+    if( strlen(argv[1]) )
+        strcpy(device_id, (char*)argv[1]);
+    printf("Set Device ID to: %s\n",device_id);
+}
+
+int command_apikey(int argc, const char * const * argv )
+{
+    if( strlen(argv[1]) )
+        strcpy(api_key, (char*)argv[1]);
+    printf("Set API KEY to: %s\n",api_key);
+}
+
+int command_pause(int argc, const char * const * argv )
+{
+    if( strlen(argv[1]) ) {
+        int p = atoi(argv[1]);
+        printf("pausing execution for %d seconds.\n",p);
+        sleep(p);
         }
 }
 

@@ -15,6 +15,9 @@
 
 #endif
 
+#define VER             0.99
+#define VER_DATE	__DATE__
+
 #define my_getc()	getc()
 #define my_puts(s)	puts(s)
 #define my_putc(c)	putchar(c)
@@ -38,8 +41,8 @@
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")
 
-#define DEFAULT_DEVICE_ID	"e83cdd8645ab1a7c0c480156efbf78f6"
-#define DEFAULT_API_KEY         "4d7e1da7f05c3fa4d5426419891a254d"
+#define DEFAULT_DEVICE_ID	(char*)"e83cdd8645ab1a7c0c480156efbf78f6"
+#define DEFAULT_API_KEY         (char*)"4d7e1da7f05c3fa4d5426419891a254d"
 #define DEFAULT_TEMP_API_STREAM (char*)"temp"
 #define DEFAULT_ADC_API_STREAM  (char*)"light_sens"
 
@@ -69,15 +72,15 @@ typedef struct {
   int (*func_p)(int, const char * const *);
   } cmd_entry;
 
-extern const char *device_id;
-extern const char *api_key;
+extern const cmd_entry mon_command_table[];
+
+#ifndef _DATADEF_ 
+extern char device_id[];
+extern char api_key[];
 extern char *temp_stream_name;
 extern char *adc_stream_name;
 extern char *demo_url;
-
 extern char* strupr(char* s);
-
-extern const cmd_entry mon_command_table[];
 extern const cmd_entry iot_command_table[];
 extern int headless;
 extern int doM2X;
@@ -85,6 +88,8 @@ extern int headless_timed;
 extern unsigned int dbg_flag;
 extern int ft_time;
 extern int ft_mode;
+extern unsigned int dbg_flag;
+#endif
 
 extern int command_help(int argc, const char * const * argv );
 extern int command_gpio(int argc, const char * const * argv );
@@ -120,6 +125,7 @@ extern "C" {
 #endif
 extern int command_demo_mode(int, const char * const *);
 extern unsigned int ascii_to_epoch(char *epoch_ascii);
+extern void doNewLine(void);
 #ifdef __cplusplus
 }
 #endif
