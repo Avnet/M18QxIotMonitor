@@ -44,7 +44,6 @@
 #include <string>
 
 #include "iot_monitor.h"
-#include "MyBuffer.hpp"
 #include "microrl_config.h"
 #include "microrl.h"
 #include "hts221.h"
