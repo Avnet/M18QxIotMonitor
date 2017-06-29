@@ -12,15 +12,9 @@
 #include <functional>
 #include <math.h>
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
 #include <hwlib/hwlib.h>
-
-#ifdef __cplusplus
 }
-#endif
 
 #include "iot_monitor.h"
 #include "microrl_config.h"
@@ -35,15 +29,11 @@ extern "C" {
 
 #include "mal.hpp"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction);
-void set_color(char *);
-void wwan_io(int);
-#ifdef __cplusplus
+  int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction);
+  void set_color(char *);
+  void wwan_io(int);
 }
-#endif
 
 #define my_getc()	getc()
 #define my_puts(s)	puts(s)

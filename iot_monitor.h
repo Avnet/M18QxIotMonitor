@@ -79,7 +79,6 @@ extern char device_id[];
 extern char api_key[];
 extern char *temp_stream_name;
 extern char *adc_stream_name;
-extern char *demo_url;
 extern char* strupr(char* s);
 extern const cmd_entry iot_command_table[];
 extern int headless;
@@ -89,6 +88,7 @@ extern unsigned int dbg_flag;
 extern int ft_time;
 extern int ft_mode;
 extern unsigned int dbg_flag;
+
 #endif
 
 extern int command_help(int argc, const char * const * argv );

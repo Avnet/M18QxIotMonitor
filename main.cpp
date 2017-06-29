@@ -90,6 +90,7 @@ void usage (void)
     printf(" -?  : Display usage info\n");
 }
 
+static char demo_url[100];
 
 int main(int argc, char *argv[]) 
 {
@@ -108,6 +109,7 @@ int main(int argc, char *argv[])
 
     strcpy(device_id,  DEFAULT_DEVICE_ID);
     strcpy(api_key,  DEFAULT_API_KEY);
+    memset(demo_url,0x00,sizeof(demo_url));
 
     while((c=getopt(argc,argv,"?mf:d:a:t:l:v:r:u:s:")) != -1 )
         switch(c) {
@@ -136,9 +138,9 @@ int main(int argc, char *argv[])
                printf("-setting Stream Name to [%s]\n",temp_stream_name);
                break;
            case 'u':
-               doM2X=false;
-               sscanf(optarg,"%x",&demo_url);
-               printf("-setting Demo URL to [%s]\n",demo_url);
+               headless=true;
+               strcpy(demo_url,optarg);
+               printf("-using URL [%s] for demo.\n",demo_url);
                break;
            case 'v':
                sscanf(optarg,"%x",&dbg_flag);
@@ -146,7 +148,6 @@ int main(int argc, char *argv[])
                break;
            case 'f':
                headless=true;
-               doM2X=false;
                sscanf(optarg,"%d",&headless_timed);
                break;
            case '?':
@@ -194,8 +195,10 @@ int main(int argc, char *argv[])
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
 
-    if( headless )
-        command_headless(argc, argv );
+    if( headless ) {
+        doM2X=false;
+        command_headless(1, (const char* const *)demo_url );
+        }
     
     print_banner();
     set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), 

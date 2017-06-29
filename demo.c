@@ -58,8 +58,6 @@ gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
 volatile int button_press=0;
 struct timespec key_press, key_release, keypress_time;
 
-char *demo_url=NULL;
-
 static char gps_cmd[512];
 
 LED_VAL led_demo[] = {
@@ -162,11 +160,13 @@ void sendGPS(void)
 
 int command_demo_mode(int argc, const char * const * argv )
 {
+    char *url;
     int start_data_service(void);
     void wwan_io(int);
     char cmd[1024], resp[1024];
     char color[10];
     int  done=0, k=0;
+
 
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Starting Demo Mode.\n");
@@ -176,11 +176,9 @@ int command_demo_mode(int argc, const char * const * argv )
     printf("and 1 message to FLOW.  If you hold the button down for >3 \n");
     printf("seconds, it will exit demo mode and re-enter the monitor.\n\nconnecting...\n");
 
-    if( demo_url == NULL )
-        demo_url = FLOW_BASE_URL;
-
+    url = (char*)argv;
     if (dbg_flag & DBG_DEMO)
-        printf("using FLOW_BASE_URL of %s\n",demo_url);
+        printf("using FLOW_BASE_URL of %s\n",url);
 
     binario_io_close();
 
@@ -227,7 +225,7 @@ int command_demo_mode(int argc, const char * const * argv )
             strftime(resp, sizeof(resp), "%H-%M-%S", tmp);
             printf("==>-DEMO LOOP BEGIN AT: %s\n",resp);
             }
-        flow_get ( demo_url, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
+        flow_get ( url, FLOW_INPUT_NAME, FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         sscanf(resp, "{\"status\":\"accepted\",\"LED\":\"%s", color);
 
@@ -237,7 +235,8 @@ int command_demo_mode(int argc, const char * const * argv )
         set_color("OFF");
         set_color(color);
 
-        while( !button_press ); /* wait for a button press */
+        if (!headless_timed)
+            while( !button_press ); /* wait for a button press */
 
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: HTS221 data to M2X\n");
@@ -279,7 +278,7 @@ int command_demo_mode(int argc, const char * const * argv )
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: data command to PUBNUB (%s)\n",cmd);
 
-        flow_get ( demo_url, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
+        flow_get ( url, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
         if (dbg_flag & DBG_DEMO) {
