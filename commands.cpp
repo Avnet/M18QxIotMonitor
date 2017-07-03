@@ -19,7 +19,7 @@ extern "C" {
 #include "iot_monitor.h"
 #include "microrl_config.h"
 #include "microrl.h"
-#include "hts221.h"
+#include "HTS221.hpp"
 #include "lis2dw12.h"
 #include "binio.h"
 #include "mytimer.h"
@@ -73,6 +73,8 @@ int ft_mode=0;
 int ft_time=0;
 int doM2X=true;
 unsigned int dbg_flag = 0;
+HTS221 *hts221;
+void *htsdev;
 
 int command_help(int argc, const char * const * argv );
 int command_gpio(int argc, const char * const * argv );
@@ -643,25 +645,33 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     else
         repeats = 1;
 
-    printf("   HTS221 Device id: 0x%02X\n", hts221_getDeviceID());
+    printf("   HTS221 Device id: 0x%02X\n", hts221->getDeviceID());
 
     if( repeats > 1 ) {
         printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
         do {
-            temp  = hts221_getTemp();
+           /* keep trying to update temp & humidity until successful */
             printf("\nReading #%d:\n",k++);
+
+            while( !hts221->getHumidity() ) ;
+            while( !hts221->getTemperature() ) ;
+
+            temp  = hts221->readHumidity();
             printf(" HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-            printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+            printf("    HTS221 Humidity: %2.1f\n", hts221->readHumidity());
             sleep(delay);
             }
         while (--repeats);
         }
     else {
-        temp  = hts221_getTemp();
+        /* get updated temp & humidity values */
+        while( !hts221->getHumidity() ) ;
+        while( !hts221->getTemperature() ) ;
+        temp  = hts221->readTemperature();
         printf("\n HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
-        printf("    HTS221 Humidity: %2.1f\n", hts221_getHumid()/10);
+        printf("    HTS221 Humidity: %2.1f\n", hts221->readHumidity());
         }
-        
+    return 1;
 }
 
 //dev reg nbr_of_bytes

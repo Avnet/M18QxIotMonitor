@@ -27,7 +27,7 @@ extern "C" {
 #include "iot_monitor.h"
 #include "microrl_config.h"
 #include "microrl.h"
-#include "hts221.h"
+#include "HTS221.hpp"
 #include "lis2dw12.h"
 #include "binio.h"
 #include "mytimer.h"
@@ -179,7 +179,8 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     printf("\n---- I2C Test 5 ------------------------------\n");
     printf("I2C: LIS2DW12 ID   = 0x%02X\n", lis2dw12_getDeviceID());
     printf("I2C: PMOD/HTS ID   = ");
-    if( (i=hts221_getDeviceID()) == 0xff )
+    HTS221 *hts221 = new HTS221;
+    if( (i=hts221->getDeviceID()) == 0xff )
         printf("FAIL\n");
     else
         printf("0x%02X\n",i);

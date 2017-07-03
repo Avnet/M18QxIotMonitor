@@ -14,7 +14,7 @@
 #include "m2x.h"
 #include "http.h"
 #include "lis2dw12.h"
-#include "hts221.h"
+#include "HTS221.hpp"
 #include "mal.hpp"
 
 typedef struct led_val_t {
@@ -245,8 +245,10 @@ int command_demo_mode(int argc, const char * const * argv )
 
 //----
         {
-        float hts221_temp = hts221_getTemp();
-        float hts221_humid= hts221_getHumid()/10;
+        while( !hts221_getHumidity() );
+        while( !hts221_getTemperature() );
+        float hts221_temp = hts221_readTemperature();
+        float hts221_humid= hts221_readHumidity();
         float adc_voltage, x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);

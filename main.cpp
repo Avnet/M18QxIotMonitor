@@ -46,7 +46,7 @@
 #include "iot_monitor.h"
 #include "microrl_config.h"
 #include "microrl.h"
-#include "hts221.h"
+#include "HTS221.hpp"
 #include "lis2dw12.h"
 #include "binio.h"
 
@@ -91,6 +91,7 @@ void usage (void)
 }
 
 static char demo_url[100];
+extern HTS221 *hts221;
 
 int main(int argc, char *argv[]) 
 {
@@ -187,11 +188,10 @@ int main(int argc, char *argv[])
     if( dbg_flag & DBG_LIS2DW12 )
         printf("-LIS2DW12: lis2dw12_getDeviceID()= 0x%02X\n",c);
 
-    c=hts221_initialize();
-    if( dbg_flag & DBG_HTS221 )
-        printf("-HTS221: hts221_initialize() = %d\n", c);
+    hts221 = new HTS221;
+    htsdev = (void*)hts221;
 
-    c=hts221_getDeviceID();
+    c=hts221->getDeviceID();
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
 

@@ -7,7 +7,7 @@
 #include "iot_monitor.h"
 #include "http.h"
 #include "m2x.h"
-#include "hts221.h"
+#include "HTS221.hpp"
 #include "mytimer.h"
 #include "lis2dw12.h"
 
@@ -82,7 +82,8 @@ void do_hts2m2x(void)
 
     m2x_create_stream(device_id, api_key, temp_stream_name);
 
-    adc_voltage = hts221_getTemp();
+    while( !hts221_getTemperature() ) /* make sure we have a good Temp reading */;
+    adc_voltage = hts221_readTemperature();
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
     sprintf(str_adc_voltage, "%f", adc_voltage);
     m2x_update_stream_value(device_id, api_key, temp_stream_name, str_adc_voltage);		
@@ -92,7 +93,8 @@ void do_hts2m2x(void)
                 device_id, api_key, "humid");
 
     m2x_create_stream(device_id, api_key, "humid");
-    adc_voltage = hts221_getHumid()/10;
+    while( !hts221_getHumidity() ) /* make sure we have a good Humidity reading */;
+    adc_voltage = hts221_readHumidity();
     memset(str_adc_voltage, 0, sizeof(str_adc_voltage));
     sprintf(str_adc_voltage, "%f", adc_voltage);
     m2x_update_stream_value(device_id, api_key, "humid", str_adc_voltage);		

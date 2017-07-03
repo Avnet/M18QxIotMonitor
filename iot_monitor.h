@@ -88,7 +88,7 @@ extern unsigned int dbg_flag;
 extern int ft_time;
 extern int ft_mode;
 extern unsigned int dbg_flag;
-
+extern void *htsdev;
 #endif
 
 extern int command_help(int argc, const char * const * argv );
