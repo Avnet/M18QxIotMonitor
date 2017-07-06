@@ -26,6 +26,7 @@ extern "C" {
 #include "http.h"
 #include "m2x.h"
 #include "MAX31855.hpp"
+#include "MS5637.hpp"
 
 #include "mal.hpp"
 
@@ -105,6 +106,7 @@ int command_dbg(int argc, const char * const * argv );
 int command_devid(int argc, const char * const * argv );
 int command_apikey(int argc, const char * const * argv );
 int command_pause(int argc, const char * const * argv );
+int command_ms5637(int argc, const char * const * argv );
 
 void do_hts2m2x(void);
 
@@ -130,6 +132,8 @@ const cmd_entry mon_command_table[] =
      "LIS2DW12      Display information about the LIS2DW12 sensor, send X msgs with Y sec delay", command_lis2dw12,
   0, "MAX31855",      
      "MAX31855      Read the MAX31855 Thermocouple-to-Digital Converter (SPI BUS on PMOD)",     command_spi,
+  0, "MS5637",      
+     "MS5637        Read the MS5637-30BA Pressure/Tempertaure sensor (if pressent)",            command_ms5637,
   0, "GPS",         
      "GPS           Display GPS information                                             ",      command_gps,
   0, "ADC",         
@@ -630,7 +634,28 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
 }
 
 
-#define CTOF(x)  ((x)*(float)1.8+32) 
+#define CTOF(x)  ((x)*(float)1.8+32) //celcius to Farenheight
+#define MTOI(x)  ((x)*0.0295301)    //millibars to inches
+
+int command_ms5637(int argc __attribute__((unused)), const char * const * argv )
+{
+    MS5637 ms5637;
+    float *val;
+
+    //lets use the highest resolution possible...
+    ms5637.setMode(D1MODE_OSR8192, D2MODE_OSR8192);
+    val = ms5637.getPT();
+    if( ms5637.getErr() )
+        printf("No MS5637 detected. (%d)\n",ms5637.getErr());
+    else {
+        printf("   MS5637 Pressure/Temperature reading:\n");
+        printf("                            Temp (C/F): %4.2f/%4.2f\n", val[1],CTOF(val[1]));
+        printf("                      Pressume (mb/in): %5.2f/%5.2f\n", val[0],MTOI(val[0]));
+        }
+
+    return 1;
+}
+
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
     int k=1, repeats, delay = 0;

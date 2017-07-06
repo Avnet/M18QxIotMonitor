@@ -38,11 +38,11 @@ private:
     unsigned int  _T0_degC, _T1_degC;
     unsigned int  _H0_T0, _H1_T0;
     unsigned int  _T0_OUT, _T1_OUT;
-    double _temperature;
-    double _humidity;
+    double  _temperature;
+    double  _humidity;
     uint8_t _address;
     uint8_t _iAm;
-    HTS221 *_hts221Ptr;
+    uint8_t _hts221Inited;
 
     uint8_t readRegister(uint8_t regToRead);
     bool writeRegister(uint8_t regToWrite, uint8_t dataToWrite);

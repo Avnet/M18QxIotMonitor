@@ -17,12 +17,13 @@ static inline bool temperatureReady(uint8_t data) { return (data & 0x01); }
 
 HTS221::HTS221(void) : _temperature(0.0), _humidity(0.0) 
 {
+    _hts221Inited = 0;
     _iAm = readRegister(WHO_AM_I);
     if (_iAm != I_AM_HTS221)
         return;
     activate();
     storeCalibration();
-    _hts221Ptr = this;
+    _hts221Inited = 1;
 }
 
 
@@ -35,6 +36,8 @@ void HTS221::activate(void)
 {
     uint8_t data;
 
+    if( !_hts221Inited )
+        return;
     data = readRegister(CTRL_REG1);
     data |= POWER_UP;
     data |= ODR0_SET;
@@ -46,6 +49,8 @@ void HTS221::deactivate(void)
 {
     uint8_t data;
 
+    if( !_hts221Inited )
+        return;
     data = readRegister(CTRL_REG1);
     data &= ~POWER_UP;
     writeRegister(CTRL_REG1, data);
@@ -58,6 +63,8 @@ bool HTS221::storeCalibration(void)
     uint8_t data;
     uint16_t tmp;
 
+    if( !_hts221Inited )
+        return false;
     for (int reg=CALIB_START; reg<=CALIB_END; reg++) {
         if ((reg!=CALIB_START+8) && (reg!=CALIB_START+9) && (reg!=CALIB_START+4)) {
 
@@ -133,6 +140,8 @@ bool HTS221::bduActivate(void)
 {
     uint8_t data;
 
+    if( !_hts221Inited )
+        return false;
     data = readRegister(CTRL_REG1);
     data |= BDU_SET;
     writeRegister(CTRL_REG1, data);
@@ -145,6 +154,8 @@ bool HTS221::bduDeactivate(void)
 {
     uint8_t data;
 
+    if( !_hts221Inited )
+        return false;
     data = readRegister(CTRL_REG1);
     data &= ~BDU_SET;
     writeRegister(CTRL_REG1, data);
@@ -161,6 +172,8 @@ bool HTS221::getHumidity(void)
     double h_temp  = 0.0;
     double hum     = 0.0;
 
+    if( !_hts221Inited )
+        return false;
     data = readRegister(STATUS_REG);
 
     if (data & HUMIDITY_READY) {
@@ -193,6 +206,8 @@ bool HTS221::getTemperature(void)
     double t_temp  = 0.0;
     double deg     = 0.0;
 
+    if( !_hts221Inited )
+        return false;
     data = readRegister(STATUS_REG);
 
     if (data & TEMPERATURE_READY) {

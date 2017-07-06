@@ -1,5 +1,7 @@
 jim_demo_CPPFLAGS = -I. -Wall -static \
         -g -O0 \
+        -std=c++14 \
+        -std=gnu++11 \
         -fno-inline \
         -Wl,--unresolved-symbols=ignore-in-shared-libs \
         -fno-short-enums \
@@ -22,8 +24,8 @@ jim_demo_CFLAGS = -Wall -static \
 AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw  
 
 iot_monitor_SOURCES = main.cpp microrl.cpp  \
-                      commands.cpp mal.cpp maljson.cpp   \
-                      MAX31855.cpp facttest.cpp          \
+                      commands.cpp mal.cpp maljson.cpp     \
+                      MAX31855.cpp facttest.cpp MS5637.cpp \
                       binio.c jsmn.c  HTS221.cpp mytimer.c \
                       http.c lis2dw12.c m2x.c demo.c wwan.c
 
