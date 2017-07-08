@@ -1,4 +1,27 @@
+/* =====================================================================
+   Copyright © 2016, Avnet (R)
 
+   Contributors:
+     * James M Flynn, www.em.avnet.com 
+ 
+   Licensed under the Apache License, Version 2.0 (the "License"); 
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, 
+   software distributed under the License is distributed on an 
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, 
+   either express or implied. See the License for the specific 
+   language governing permissions and limitations under the License.
+
+    @file          MS5637.cpp
+    @version       1.0
+    @date          July 2017
+
+======================================================================== */
+// Driver for MS5637_02BA03 PMOD on the WNC M18Qx SOM 
 
 #ifndef MS5637_HPP_
 #define MS5637_HPP_

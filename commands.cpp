@@ -27,6 +27,8 @@ extern "C" {
 #include "m2x.h"
 #include "MAX31855.hpp"
 #include "MS5637.hpp"
+#include "HTU21D.hpp"
+#include "TSYS02D.hpp"
 
 #include "mal.hpp"
 
@@ -107,7 +109,8 @@ int command_devid(int argc, const char * const * argv );
 int command_apikey(int argc, const char * const * argv );
 int command_pause(int argc, const char * const * argv );
 int command_ms5637(int argc, const char * const * argv );
-
+int command_htu21d(int argc, const char * const * argv );
+int command_tsys02d(int argc, const char * const * argv );
 void do_hts2m2x(void);
 
 void sigint_cb (void);
@@ -134,6 +137,10 @@ const cmd_entry mon_command_table[] =
      "MAX31855      Read the MAX31855 Thermocouple-to-Digital Converter (SPI BUS on PMOD)",     command_spi,
   0, "MS5637",      
      "MS5637        Read the MS5637-30BA Pressure/Tempertaure sensor (if pressent)",            command_ms5637,
+  0, "HTU21D",      
+     "HTU21D        Read the HTU21D Temperature/Humidity sensor (if present)",                  command_htu21d,
+  0, "TSYS02D",      
+     "TSYS02D       Read the TSYS02D Temperature sensor (if present)",                          command_tsys02d,
   0, "GPS",         
      "GPS           Display GPS information                                             ",      command_gps,
   0, "ADC",         
@@ -656,6 +663,25 @@ int command_ms5637(int argc __attribute__((unused)), const char * const * argv )
     return 1;
 }
 
+int command_htu21d(int argc, const char * const * argv )
+{
+    HTU21D htu21d;
+
+    if( htu21d.reset() )
+        printf("No HTU21D detected. (%d)\n",htu21d.getErr());
+    else {
+        float t = htu21d.readTemperature(TRIGGER_TEMP_MEASURE_NOHOLD);
+        int te = htu21d.getErr();
+        float rh= htu21d.readHumidity(TRIGGER_HUMD_MEASURE_NOHOLD);
+        int he = htu21d.getErr();
+
+        printf("   HTU21D Humidity/Temperature reading [Config=0x%02X, HE=0x%02X, TE=0x%02X]:\n",htu21d.getOpMode(),he,te);
+        printf("          Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
+        printf("   Relative Humidity: %5.2f\%\n", rh);
+        printf("      Dewpoint (C/F): %4.2f/%4.2f\n",DEW(t,rh),CTOF(DEW(t,rh)));
+        }
+}
+
 int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
     int k=1, repeats, delay = 0;
@@ -952,5 +978,25 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
         }
     else
        lis2dw12_ot_acc_data();
+}
+
+int command_tsys02d(int argc, const char * const * argv )
+{
+    TSYS02D tsys02;
+
+    if( tsys02.getErr() )
+        printf("No TSYS02D detected. (%d)\n",tsys02.getErr());
+    else {
+        uint8_t *sn = tsys02.getSN();
+        int     sne = tsys02.getErr();
+        float     t = tsys02.getTemperature(READT_NOHOLD);
+        int      te = tsys02.getErr();
+
+        printf("   TSYS02D Temperature reading [SNE=0x%02X, TE=0x%02X]:\n",sne, te);
+        printf("     TSYS02D Serial Number: ");
+        for( int i=0; i<8; i++ )
+            printf("0x%02X ",sn[i]);
+        printf("\n                Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
+        }
 }
 

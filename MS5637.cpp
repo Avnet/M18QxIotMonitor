@@ -1,16 +1,37 @@
-// MS5637_02BA03
+/* =====================================================================
+   Copyright © 2016, Avnet (R)
+
+   Contributors:
+     * James M Flynn, www.em.avnet.com 
+ 
+   Licensed under the Apache License, Version 2.0 (the "License"); 
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, 
+   software distributed under the License is distributed on an 
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, 
+   either express or implied. See the License for the specific 
+   language governing permissions and limitations under the License.
+
+    @file          MS5637.cpp
+    @version       1.0
+    @date          July 2017
+
+======================================================================== */
+// Driver for MS5637_02BA03 PMOD on the WNC M18Qx SOM 
 
 #include <stdint.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <cmath>
 
+#include <cmath>
 #include "MS5637.hpp"
 
 extern "C" { 
 #include <hwlib/hwlib.h>
 }
-
 
 #define MS5637_SAD 0x76       // MS5637_02BA03 I2C address
 
@@ -24,7 +45,8 @@ extern "C" {
 #define READ_CMD              0x00
 #define PROM_READ_BASE        0xA2
 
-
+//
+// --- Private Worker Method ---
 // Send the 'cmd' supplied and then read 'siz' bytes. Return
 // to the caller as an uint32_t.  The user specifies how many
 // bytes (siz) to use when construction the uint32_t.  This 
@@ -51,7 +73,9 @@ uint32_t MS5637::readRegister(uint8_t cmd, uint8_t siz)
 }
 
 
-// Write a single uint8_t value 
+// --- Private Worker Method ---
+// Write a single uint8_t cmd to the MS5637
+// 
 bool MS5637::writeRegister(uint8_t cmd)
 {
     i2c_handle_t my_handle = 0;
@@ -76,8 +100,7 @@ MS5637::MS5637(void): d1_mode(D1MODE_OSR256), d2_mode(D2MODE_OSR256)
 
 }
 
-// destructor doesn't do anything
-MS5637::~MS5637(void) {};
+MS5637::~MS5637(void) {};     // destructor doesn't do anything
 
 
 //
@@ -86,7 +109,7 @@ MS5637::~MS5637(void) {};
 // it will use the fast conversion/lowest accuracy setting.
 //
 // returns -1 if an incorrect parameter, 0 otherwise.  Parameters are defined in the 
-//    associated header file.
+//    MS5637.hpp header file.
 //
 int MS5637::setMode(uint8_t d1, uint8_t d2)
 {
@@ -100,7 +123,12 @@ int MS5637::setMode(uint8_t d1, uint8_t d2)
 }
 
 //
-// Performs a Pressume & Temperature Read.
+// Read the Pressume & Temperature from the MS5637.
+// Retuns a pointer to a 'float' array of two elements where:
+//    results[0] = is Barametric Pressure in millibars
+//    results[1] = is Termperature in C
+//
+// If any errors occur when reading from the MS5637 then NULL is returned
 //
 float * MS5637::getPT(void)
 {
@@ -111,27 +139,30 @@ float * MS5637::getPT(void)
     uint64_t OFF;
     uint64_t SENS;
 
-    results[0] = results[1] = 0;
-//
-// The only way err could be != 0 is if an error occured during initialization, so simply exit...
-    if( err )
+    if( err ) // If an error occured during initialization, simply exit...
         return NULL;
 
-    dly = conv_delay[(d1_mode&0xf)>>1]*1000;
+//
+// D1 is the raw Barametric Pressure value
+// it is read first.
+//
+    results[0] = results[1] = 0;
+    dly = conv_delay[(d1_mode&0xf)>>1]*1000;    //get delay needed for A2D conversion (use usec)
     writeRegister(RESET);
     writeRegister(d1_mode);
-    usleep(dly); //let conversion complete before reading
-    D1 = readRegister(READ_CMD,3);
-// If an error occurs during the device read operation, exit 
-    if( err )
+    usleep(dly);                                //pause for conversion to complete
+    D1 = readRegister(READ_CMD,3);              
+    if( err ) // If an error occured during the read operation, exit 
         return NULL;
 
+//
+// D2 is the raw Temperature value
+//
     dly = conv_delay[(d2_mode&0xf)>>1]*1000;
     writeRegister(d2_mode);
-    usleep(dly); //let conversion complete before reading
+    usleep(dly); 
     D2 = readRegister(READ_CMD,3);
-// If an error occurs during the device read operation, exit 
-    if( err )
+    if( err )  
         return NULL;
 
     // Caculate 1st order values
