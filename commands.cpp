@@ -29,6 +29,7 @@ extern "C" {
 #include "MS5637.hpp"
 #include "HTU21D.hpp"
 #include "TSYS02D.hpp"
+#include "TSYS01.hpp"
 
 #include "mal.hpp"
 
@@ -111,6 +112,7 @@ int command_pause(int argc, const char * const * argv );
 int command_ms5637(int argc, const char * const * argv );
 int command_htu21d(int argc, const char * const * argv );
 int command_tsys02d(int argc, const char * const * argv );
+int command_tsys01(int argc, const char * const * argv );
 void do_hts2m2x(void);
 
 void sigint_cb (void);
@@ -141,6 +143,8 @@ const cmd_entry mon_command_table[] =
      "HTU21D        Read the HTU21D Temperature/Humidity sensor (if present)",                  command_htu21d,
   0, "TSYS02D",      
      "TSYS02D       Read the TSYS02D Temperature sensor (if present)",                          command_tsys02d,
+  0, "TSYS01",      
+     "TSYS01        Read the TSYS01 Temperature sensor (if present)",                           command_tsys01,
   0, "GPS",         
      "GPS           Display GPS information                                             ",      command_gps,
   0, "ADC",         
@@ -997,6 +1001,21 @@ int command_tsys02d(int argc, const char * const * argv )
         for( int i=0; i<8; i++ )
             printf("0x%02X ",sn[i]);
         printf("\n                Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
+        }
+}
+
+int command_tsys01(int argc, const char * const * argv )
+{
+    TSYS01 tsys01;
+
+    if( tsys01.getErr() )
+        printf("No TSYS01 detected. (%d)\n",tsys01.getErr());
+    else {
+        float    t  = tsys01.getTemperature();
+        int      te = tsys01.getErr();
+
+        printf("   TSYS01 Temperature reading [TE=0x%02X]:\n",te);
+        printf("          Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
         }
 }
 
