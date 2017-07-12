@@ -54,6 +54,11 @@
 #define D2MODE_OSR4096    0x58 //                              0.0026 c
 #define D2MODE_OSR8192    0x5a //                              0.0022 c
 
+//Macro to convert Millibars to inches of barametric pressure
+#ifndef MTOI
+#define MTOI(x)  ((x)*0.0295301)    //millibars to inches
+#endif
+
 class MS5637
 {
 
