@@ -9,7 +9,7 @@
 
 #define TSYS01_SAD          0x77    //I2C Salave Address
 
-#define RESET_CMD           0x1E
+#define TSY01_RESET_CMD     0x1E
 #define READ_CMD            0x00
 #define ADC_CMD             0x48
 #define PROM_BASE           0XA0
@@ -62,7 +62,7 @@ public:
 //
     int     reset(void) {
         _err = 0;
-        _err=writeRegister(RESET_CMD, 0, 0);
+        _err=writeRegister(TSY01_RESET_CMD, 0, 0);
         usleep(RESET_DLY);  
         return _err;
     }
