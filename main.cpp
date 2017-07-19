@@ -87,6 +87,7 @@ void usage (void)
     printf("       1000 = SPI\n");
     printf("       NOTE: values can be combined, e.g., 23 is LIS2DW12+FLOW+CURL\n");
     printf(" -f #: Run the Demo application. Loop every # seconds\n");
+    printf(" -x #: Set the ADC Threshold for demo mode to # (defaults to 0.1)\n");
     printf(" -?  : Display usage info\n");
 }
 
@@ -96,6 +97,7 @@ extern HTS221 *hts221;
 int main(int argc, char *argv[]) 
 {
     extern void print_banner(void);
+    extern float adc_threshold;
     int process_command (int argc, const char * const * argv);
     int c;
     void app_exit(void);
@@ -112,7 +114,7 @@ int main(int argc, char *argv[])
     strcpy(api_key,  DEFAULT_API_KEY);
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?mf:d:a:t:l:v:r:u:s:")) != -1 )
+    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:s:")) != -1 )
         switch(c) {
            case 'm': //send data to M2X
                printf("-disable M2X transmissions\n");
@@ -150,6 +152,9 @@ int main(int argc, char *argv[])
            case 'f':
                headless=true;
                sscanf(optarg,"%d",&headless_timed);
+               break;
+           case 'x':
+               sscanf(optarg,"%f",&adc_threshold);
                break;
            case '?':
                if (optopt == 'a' || optopt == 's' ||optopt == 'd')

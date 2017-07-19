@@ -28,8 +28,7 @@ extern "C" {
 #include "MAX31855.hpp"
 #include "MS5637.hpp"
 #include "HTU21D.hpp"
-#include "TSYS02D.hpp"
-#include "TSYS01.hpp"
+#include "KMA36.hpp"
 
 #include "mal.hpp"
 
@@ -79,6 +78,7 @@ int doM2X=true;
 unsigned int dbg_flag = 0;
 HTS221 *hts221;
 void *htsdev;
+float adc_threshold=0;
 
 int command_help(int argc, const char * const * argv );
 int command_gpio(int argc, const char * const * argv );
@@ -113,6 +113,7 @@ int command_ms5637(int argc, const char * const * argv );
 int command_htu21d(int argc, const char * const * argv );
 int command_tsys02d(int argc, const char * const * argv );
 int command_tsys01(int argc, const char * const * argv );
+int command_kma36(int argc, const char * const * argv );
 void do_hts2m2x(void);
 
 void sigint_cb (void);
@@ -145,10 +146,12 @@ const cmd_entry mon_command_table[] =
      "TSYS02D       Read the TSYS02D Temperature sensor (if present)",                          command_tsys02d,
   0, "TSYS01",      
      "TSYS01        Read the TSYS01 Temperature sensor (if present)",                           command_tsys01,
+  0, "KMA36",      
+     "KMA36         Read the KMA36 sensor (if present)",                                        command_kma36,
   0, "GPS",         
      "GPS           Display GPS information                                             ",      command_gps,
   0, "ADC",         
-     "ADC           Read ADC                                                            ",      command_adc,
+     "ADC #         Read ADC (if a # is present, it is set as a threshold value)        ",      command_adc, 
   0, "I2CPEEK",     
      "I2CPEEK <dev> <reg> <nbr_bytes> Display <nbr_bytes> returned by reading <reg> on I2C bus\n"
      "             LIS2DW12 <dev> =19; HTS221 <dev>=5F;                                         ",command_i2cpeek,
@@ -582,9 +585,9 @@ int command_gpio(int argc __attribute__((unused)), const char * const * argv )
     state  = atoi(argv[2]);
 
     switch(indx) {
-        case 92:  //GPIO_02
-        case 101:  //GPIO_03
-        case 102:  //GPIO_07
+        case 92:  //GPIO_PIN_2
+        case 101:  //GPIO_PIN_3
+        case 102:  //GPIO_PIN_7
             do {
                 done = (gpios[k].nbr == indx);
                 k++;
@@ -621,9 +624,9 @@ int command_blink(int argc __attribute__((unused)), const char * const * argv )
     rate = atoi(argv[2]);
 
     switch(indx) {
-        case 92:  //GPIO_02
-        case 101:  //GPIO_03
-        case 102:  //GPIO_07
+        case 92:   //GPIO_PIN_2
+        case 101:  //GPIO_PIN_3
+        case 102:  //GPIO_PIN_7
             do {
                 done = (gpios[k].nbr == indx);
                 k++;
@@ -852,9 +855,15 @@ int command_adc(int argc, const char * const * argv )
 {
     adc_handle_t my_adc=(adc_handle_t)NULL;
     float val;
+    int i;
 
-    adc_init(&my_adc);
-    adc_read(my_adc, &val);
+    if( argc == 2 ) {
+        adc_threshold = atof(argv[1]);
+        printf("-set threshold value to %f\n",adc_threshold);
+        }
+
+    i=adc_init(&my_adc);
+    i=adc_read(my_adc, &val);
     printf("       ADC return value: %f\n", val);
     adc_deinit(&my_adc);
 }
@@ -984,6 +993,7 @@ int command_lis2dw12(int argc __attribute__((unused)), const char * const * argv
        lis2dw12_ot_acc_data();
 }
 
+#include "TSYS02D.hpp"
 int command_tsys02d(int argc, const char * const * argv )
 {
     TSYS02D tsys02;
@@ -1004,6 +1014,7 @@ int command_tsys02d(int argc, const char * const * argv )
         }
 }
 
+#include "TSYS01.hpp"
 int command_tsys01(int argc, const char * const * argv )
 {
     TSYS01 tsys01;
@@ -1016,6 +1027,23 @@ int command_tsys01(int argc, const char * const * argv )
 
         printf("   TSYS01 Temperature reading [TE=0x%02X]:\n",te);
         printf("          Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
+        }
+}
+
+int command_kma36(int argc, const char * const * argv )
+{
+    uint8_t addr = atoi(argv[1]);
+    sscanf(argv[1],"%x",&addr);
+    KMA36 kma(addr);
+
+    if( kma.getErr() )
+        printf("No KMA36 detected. (%d)\n",kma.getErr());
+    else {
+//        float    t  = tsys01.getTemperature();
+//        int      te = tsys01.getErr();
+//
+//        printf("   TSYS01 Temperature reading [TE=0x%02X]:\n",te);
+//        printf("          Temp (C/F): %4.2f/%4.2f\n", t,CTOF(t));
         }
 }
 

@@ -18,7 +18,7 @@ size_t     gpio_input_timer;
 
 GPIOPIN gpios[] = {
 //  nbr, rate, val, hndl, timr
-    92,   0,   0,    0,   0,   //RED LED
+     92,  0,   0,    0,   0,   //RED LED
     101,  0,   0,    0,   0,   //GREEN LED
     102,  0,   0,    0,   0,   //BLUE LED
     };
@@ -61,7 +61,7 @@ void gpio_timer_task(size_t timer_id, void * user_data)
     void lis2dw12_timer_task(size_t timer_id, void * user_data);
     struct timer_node * node = (struct timer_node *)timer_id;
     GPIOPIN *mytimer = (GPIOPIN*)node->user_data;
-    extern int ft_mode;
+    extern int ft_mode;  //factory test mode flag
     int done,i=0;
 
     if( ft_mode ) {
@@ -174,6 +174,5 @@ void monitor_gpios( void )
     start_IoTtimers();
     gpio_input.timr = create_IoTtimer(1, gpio_input_timer_task, TIMER_PERIODIC, NULL);
 }
-
 
 

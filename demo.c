@@ -54,8 +54,9 @@ typedef struct led_val_t {
 #define FLOW_DEVICE_NAME "vstarterkit001"
 #define FLOW_SERVER      "run-west.att.io"
 
-gpio_handle_t user_key=0, red_led=0, green_led=0, blue_led=0;
+gpio_handle_t adctmr_hndl=0, relay2=0, user_key=0, red_led=0, green_led=0, blue_led=0;
 volatile int button_press=0;
+volatile int relay2_val=0;
 struct timespec key_press, key_release, keypress_time;
 
 static char gps_cmd[512];
@@ -113,10 +114,16 @@ int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
             }
 
         if( !button_press ) {
+//
+// toggle GPIO_PIN_3
+//
             button_press = 1;
+            relay2_val = !relay2_val;
+            gpio_write( relay2, (relay2_val)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
+
             clock_gettime(CLOCK_MONOTONIC, &key_press);
             if( dbg_flag & DBG_DEMO )
-                printf("-DEMO: KEY PRESS detected\n");
+                printf("-DEMO: KEY PRESS detected\n-DEMO: RELAY2 is %d\n",relay2_val);
             }
         else {
             button_press = 0;
@@ -157,6 +164,30 @@ void sendGPS(void)
         printf("-DEMO: GPS command set to (%s)\n",gps_cmd);
 }
 
+//
+// Following routine are for monitoring the ADC during demo mode
+//
+
+void gpio_adc_timer_task(size_t timer_id, void * user_data)
+{
+    extern float adc_threshold;
+    float adc_voltage;
+    adc_handle_t my_adc=(adc_handle_t)NULL;
+
+    adc_init(&my_adc);
+    adc_read(my_adc, &adc_voltage);
+    adc_deinit(&my_adc);
+printf("-BINIO: threshold=%f, adc=%f\n",adc_threshold,adc_voltage);
+    if( adc_voltage > adc_threshold ){
+        printf("-BINIO: turn ON GPIO_PIN_4\n");
+        gpio_write( adctmr_hndl, GPIO_LEVEL_HIGH );
+        }
+    else{
+        printf("-BINIO: turn OFF GPIO_PIN_4\n");
+        gpio_write( adctmr_hndl, GPIO_LEVEL_LOW );
+        }
+}
+
 
 int command_demo_mode(int argc, const char * const * argv )
 {
@@ -185,20 +216,33 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_init( GPIO_PIN_92,  &red_led );
     gpio_init( GPIO_PIN_101, &green_led );
     gpio_init( GPIO_PIN_102, &blue_led );
+    gpio_init( GPIO_PIN_3,   &relay2 );
+    gpio_init( GPIO_PIN_4,   &adctmr_hndl );
 
-    gpio_dir(red_led,   GPIO_DIR_OUTPUT);
-    gpio_dir(green_led, GPIO_DIR_OUTPUT);
-    gpio_dir(blue_led,  GPIO_DIR_OUTPUT);
+    gpio_dir(red_led,     GPIO_DIR_OUTPUT);
+    gpio_dir(green_led,   GPIO_DIR_OUTPUT);
+    gpio_dir(blue_led,    GPIO_DIR_OUTPUT);
+    gpio_dir(relay2,      GPIO_DIR_OUTPUT);
+    gpio_dir(adctmr_hndl, GPIO_DIR_OUTPUT);
 
     gpio_init( GPIO_PIN_98,  &user_key );  //SW3
     gpio_dir(user_key, GPIO_DIR_INPUT);
     gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, gpio_irq_callback);
     button_press = 0;
 
+    gpio_write( adctmr_hndl, GPIO_LEVEL_LOW );
+
+    start_IoTtimers();
+    create_IoTtimer(1, gpio_adc_timer_task, TIMER_PERIODIC, NULL);
+
+
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Set LED RED\n");
     // while we are waiting for a data connection, make the LED RED...
     gpio_write( red_led, GPIO_LEVEL_HIGH);
+    gpio_write( relay2, GPIO_LEVEL_LOW);  //startup with relay2 off
+    if (dbg_flag & DBG_DEMO)
+        printf("-DEMO: RELAY2 is %d\n",relay2_val);
 
     sendGPS();
     while( headless || !done ) {
@@ -314,6 +358,7 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_deinit( &green_led);
     gpio_deinit( &blue_led);
     gpio_deinit( &user_key);
+    gpio_deinit( &adctmr_hndl);
 
     if (dbg_flag & DBG_DEMO)
         printf("Restarting the Monitor...\n");
