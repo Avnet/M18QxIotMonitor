@@ -70,13 +70,12 @@ char api_key[50];
 char *adc_stream_name  = (char*)DEFAULT_ADC_API_STREAM;
 char *temp_stream_name = (char*)DEFAULT_TEMP_API_STREAM;
 sysinfo mySystem;
-int headless=false;
+int headless=0;
 int headless_timed=0;
 int ft_mode=0;
 int ft_time=0;
 int doM2X=true;
 unsigned int dbg_flag = 0;
-HTS221 *hts221;
 void *htsdev;
 float adc_threshold=0;
 
@@ -163,7 +162,7 @@ const cmd_entry mon_command_table[] =
   0, "WNC",         
      "wnc           Enters WNC testing command mode",                                           command_wnctest,
   0, "DODEMO",      
-     "dodemo        Run the Demo Program (hold user key for > 3 sedonds to return to monitor)", command_demo_mode,
+     "dodemo        Run the Demo Program (hold user key for > 3 sedonds to return to monitor)", command_headless,
   0, "PAUSE",      
      "pause X       Pause program execution for # seconds",                                     command_pause,
   0, "EXIT",        
@@ -693,6 +692,8 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
 {
     int k=1, repeats, delay = 0;
     float temp;
+    HTS221 *hts221 = new HTS221;
+
 
     if( argc == 3 ) {
         delay   = atoi(argv[2]);
@@ -703,7 +704,9 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
     else
         repeats = 1;
 
-    printf("   HTS221 Device id: 0x%02X\n", hts221->getDeviceID());
+    k = hts221->getDeviceID();
+
+    printf("   HTS221 Device id: 0x%02X\n", k);
 
     if( repeats > 1 ) {
         printf("send %d mesurments with %d second delay between each measurment.\n",repeats,delay);
@@ -723,8 +726,8 @@ int command_hts221(int argc __attribute__((unused)), const char * const * argv )
         }
     else {
         /* get updated temp & humidity values */
-        while( !hts221->getHumidity() ) ;
         while( !hts221->getTemperature() ) ;
+        while( !hts221->getHumidity() ) ;
         temp  = hts221->readTemperature();
         printf("\n HTS221 Temperature: %3.2fc/%3.2ff\n", temp, CTOF(temp));
         printf("    HTS221 Humidity: %2.1f\n", hts221->readHumidity());
@@ -789,9 +792,21 @@ int command_wnctest(int, char const* const*)
 int command_headless(int argc, const char * const * argv )
 {
     void app_exit(void);
+    int i=0;
+    const char * const * ptr=NULL;
 
-    command_demo_mode(argc, argv);
-    app_exit();
+    if( argc > 2 ) {
+        i = atoi(argv[2]);
+        printf("-loop every %d seconds\n",i);
+        }
+
+    if( argc > 1 ) 
+        ptr = (const char * const *)argv[1];
+
+    if( !argc ) 
+        ptr = argv;
+
+    command_demo_mode(i, ptr);
 }
 
 

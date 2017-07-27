@@ -33,7 +33,7 @@ public:
     inline const uint8_t   getDeviceID(void){ return _iAm; }
 
 private:
-    bool storeCalibration(void);
+    bool getCalibration(void);
     unsigned char _h0_rH, _h1_rH;
     unsigned int  _T0_degC, _T1_degC;
     unsigned int  _H0_T0, _H1_T0;
@@ -50,7 +50,7 @@ private:
 
 #else
 
-//these are the functions you can access form 'C'
+//these are the functions you can access from 'C'
 int  hts221_getHumidity(void);
 int  hts221_getTemperature(void);
 const double hts221_readHumidity(void);

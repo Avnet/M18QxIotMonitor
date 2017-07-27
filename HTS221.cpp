@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include "iot_monitor.h"
 #include "HTS221.hpp"
 
 extern "C" { 
@@ -21,8 +22,7 @@ HTS221::HTS221(void) : _temperature(0.0), _humidity(0.0)
     _iAm = readRegister(WHO_AM_I);
     if (_iAm != I_AM_HTS221)
         return;
-    activate();
-    storeCalibration();
+//    activate();
     _hts221Inited = 1;
 }
 
@@ -36,12 +36,16 @@ void HTS221::activate(void)
 {
     uint8_t data;
 
+    if( dbg_flag & DBG_HTS221 )
+        printf("-HTS221: activate()\n");
+
     if( !_hts221Inited )
         return;
     data = readRegister(CTRL_REG1);
     data |= POWER_UP;
     data |= ODR0_SET;
     writeRegister(CTRL_REG1, data);
+    getCalibration();
 }
 
 
@@ -49,6 +53,8 @@ void HTS221::deactivate(void)
 {
     uint8_t data;
 
+    if( dbg_flag & DBG_HTS221 )
+        printf("-HTS221: deactivate()\n");
     if( !_hts221Inited )
         return;
     data = readRegister(CTRL_REG1);
@@ -58,72 +64,94 @@ void HTS221::deactivate(void)
 
 
 
-bool HTS221::storeCalibration(void)
+bool HTS221::getCalibration(void)
 {
     uint8_t data;
     uint16_t tmp;
 
     if( !_hts221Inited )
         return false;
+
     for (int reg=CALIB_START; reg<=CALIB_END; reg++) {
         if ((reg!=CALIB_START+8) && (reg!=CALIB_START+9) && (reg!=CALIB_START+4)) {
 
             data = readRegister(reg);
+            if( dbg_flag & DBG_HTS221 ) 
+                printf("-HTS221-REG: 0x%02X = %02X\n",reg,data);
 
             switch (reg) {
-            case CALIB_START:
+            case CALIB_START:      //0x30
                 _h0_rH = data;
                 break;
-            case CALIB_START+1:
-            _h1_rH = data;
-            break;
-            case CALIB_START+2:
-            _T0_degC = data;
-            break;
-            case CALIB_START+3:
-            _T1_degC = data;
-            break;
 
-            case CALIB_START+5:
-            tmp = _T0_degC;
-            _T0_degC = (data&0x3)<<8;
-            _T0_degC |= tmp;
+            case CALIB_START+1:    //0x31
+                _h1_rH = data;
+                break;
 
-            tmp = _T1_degC;
-            _T1_degC = ((data&0xC)>>2)<<8;
-            _T1_degC |= tmp;
-            break;
-            case CALIB_START+6:
-            _H0_T0 = data;
-            break;
-            case CALIB_START+7:
-            _H0_T0 |= data<<8;
-            break;
-            case CALIB_START+0xA:
-            _H1_T0 = data;
-            break;
-            case CALIB_START+0xB:
-            _H1_T0 |= data <<8;
-            break;
-            case CALIB_START+0xC:
-            _T0_OUT = data;
-            break;
-            case CALIB_START+0xD:
-            _T0_OUT |= data << 8;
-            break;
-            case CALIB_START+0xE:
-            _T1_OUT = data;
-            break;
-            case CALIB_START+0xF:
-            _T1_OUT |= data << 8;
-            break;
+            case CALIB_START+2:    //0x32
+                _T0_degC = data;
+                break;
+
+            case CALIB_START+3:    //0x30
+                _T1_degC = data;
+                break;
+
+            case CALIB_START+5:    //0x35
+                tmp = _T0_degC & 0x00ff;
+                _T0_degC = ((uint16_t)data & 0x0003)<<8;
+                _T0_degC |= tmp;
+
+                tmp = _T1_degC & 0x00ff;;
+                _T1_degC = ((uint16_t)data&0x000C)<<6;
+                _T1_degC |= tmp;
+                break;
+
+            case CALIB_START+6:     //0x36
+                _H0_T0 = data;
+                break;
+
+            case CALIB_START+7:      //0x37
+                _H0_T0 |= ((int)data)<<8;
+                if( _H0_T0 & 0x8000 )
+                    _H0_T0 |= 0xffff0000;
+                break;
+
+            case CALIB_START+0xA:    //0x3a
+                _H1_T0 = data;
+                break;
+
+            case CALIB_START+0xB:    //0x3b
+                _H1_T0 |= ((int)data)<<8;
+                if( _H1_T0 & 0x8000 )
+                    _H1_T0 |= 0xffff0000;
+                break;
+
+            case CALIB_START+0xC:    //0x3c
+                _T0_OUT = data;
+                break;
+
+            case CALIB_START+0xD:    //0x3d
+                _T0_OUT |= ((int)data)<<8;
+                if( _T0_OUT & 0x8000 )
+                    _T0_OUT |= 0xffff0000;
+                break;
+
+            case CALIB_START+0xE:    //0x3e
+                _T1_OUT = data;
+                break;
+
+            case CALIB_START+0xF:    //0x3f
+                _T1_OUT |= ((int)data)<<8;
+                if( _T1_OUT & 0x8000 )
+                    _T1_OUT |= 0xffff0000;
+                break;
 
 
             case CALIB_START+8:
             case CALIB_START+9:
             case CALIB_START+4:
-            //DO NOTHING
-            break;
+                //DO NOTHING
+                break;
 
             // to cover any possible error
             default:
@@ -131,6 +159,17 @@ bool HTS221::storeCalibration(void)
             } /* switch */
         } /* if */
     }  /* for */
+
+    if( dbg_flag & DBG_HTS221 ) {
+        printf("-HTS221: _h0_rH=0x%02X\n",_h0_rH);
+        printf("-HTS221: _h1_rH=0x%02X\n",_h1_rH);
+        printf("-HTS221: _T0_degC=0x%04X\n",_T0_degC);
+        printf("-HTS221: _T1_degC=0x%04X\n",_T1_degC);
+        printf("-HTS221: _H0_T0=%d (0x%04X)\n",_H0_T0,_H0_T0);
+        printf("-HTS221: _H1_T0=%d (0x%04X)\n",_H1_T0, _H1_T0);
+        printf("-HTS221: _T0_OUT=%d (0x%04X)\n",_T0_OUT, _T0_OUT);
+        printf("-HTS221: _T1_OUT=%d (0x%04X)\n",_T1_OUT, _T1_OUT);
+        }
     return true;
 }
 
@@ -174,9 +213,11 @@ bool HTS221::getHumidity(void)
 
     if( !_hts221Inited )
         return false;
-    data = readRegister(STATUS_REG);
 
-    if (data & HUMIDITY_READY) {
+    activate();
+    data = readRegister(STATUS_REG);
+    NewData = data & HUMIDITY_READY;
+    if (NewData) {
         data = readRegister(HUMIDITY_H_REG);
         h_out = data << 8;  // MSB
         data = readRegister(HUMIDITY_L_REG);
@@ -190,7 +231,6 @@ bool HTS221::getHumidity(void)
 	         (double)((int16_t)_H1_T0 - (int16_t)_H0_T0);
         hum    = (double)((int16_t)_h0_rH) / 2.0; // remove x2 multiple
         _humidity = (hum + h_temp); // provide signed % measurement unit
-        NewData=true;
     }
     return NewData;
 }
@@ -208,10 +248,11 @@ bool HTS221::getTemperature(void)
 
     if( !_hts221Inited )
         return false;
+
+    activate();
     data = readRegister(STATUS_REG);
-
-    if (data & TEMPERATURE_READY) {
-
+    NewData = data & TEMPERATURE_READY;
+    if (NewData) {
         data= readRegister(TEMP_H_REG);
         t_out = data  << 8; // MSB
         data = readRegister(TEMP_L_REG);
@@ -225,9 +266,7 @@ bool HTS221::getTemperature(void)
 	         (double)((int16_t)_T1_OUT - (int16_t)_T0_OUT);
         deg    = (double)((int16_t)_T0_degC) / 8.0;     // remove x8 multiple
         _temperature = deg + t_temp;   // provide signed celsius measurement unit
-        NewData=true;
     }
-
     return NewData;
 }
 
@@ -238,10 +277,15 @@ uint8_t HTS221::readRegister(uint8_t reg_addr)
 {
     i2c_handle_t my_handle = 0;
     uint8_t value_read;
+    int i;
 
+    if( dbg_flag & DBG_I2C )
+        printf("read from HTS221, REG 0x%02X\n",reg_addr);
     i2c_bus_init(I2C_BUS_I, &my_handle);
     i2c_write(my_handle, HTS221_SAD, &reg_addr, 1, I2C_NO_STOP);
-    i2c_read(my_handle, HTS221_SAD, &value_read, 1);
+    i=i2c_read(my_handle, HTS221_SAD, &value_read, 1);
+    if( dbg_flag & DBG_I2C )
+        printf("HTS221 read returned 0x%02X (%d)\n",value_read,i);
     i2c_bus_deinit(&my_handle);
     return value_read;
 }
@@ -254,10 +298,14 @@ bool HTS221::writeRegister(uint8_t reg_addr, uint8_t value)
     int i;
     uint8_t txBuff[2];
 
+    if( dbg_flag & DBG_I2C )
+        printf("HTS221 write 0x%02X to 0x%02X\n",value,reg_addr);
     txBuff[0] = reg_addr;
     txBuff[1] = value;
     i2c_bus_init(I2C_BUS_I, &my_handle);
     i=i2c_write(my_handle, HTS221_SAD, txBuff, 2, I2C_STOP);
+    if( dbg_flag & DBG_I2C )
+        printf("HTS221 write was %s\n",i?"NO GOOD":"GOOD");
     i2c_bus_deinit(&my_handle);
     return (i);
 }

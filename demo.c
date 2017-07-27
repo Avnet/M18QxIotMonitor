@@ -49,7 +49,6 @@ typedef struct led_val_t {
 
 
 #define FLOW_BASE_URL    "https://runm-east.att.io/cfb0a90848c28/eb2514c29597/c94b14f417ae42a/in/flow"
-//#define FLOW_BASE_URL      "https://run-west.att.io/c6bb8b123db6a/803bee680a53/042a3b30ed96c11/in/flow"
 #define FLOW_INPUT_NAME  "climate"
 #define FLOW_DEVICE_NAME "vstarterkit001"
 #define FLOW_SERVER      "run-west.att.io"
@@ -177,7 +176,7 @@ void gpio_adc_timer_task(size_t timer_id, void * user_data)
     adc_init(&my_adc);
     adc_read(my_adc, &adc_voltage);
     adc_deinit(&my_adc);
-printf("-BINIO: threshold=%f, adc=%f\n",adc_threshold,adc_voltage);
+
     if( adc_voltage > adc_threshold ){
         printf("-BINIO: turn ON GPIO_PIN_4\n");
         gpio_write( adctmr_hndl, GPIO_LEVEL_HIGH );
@@ -207,8 +206,18 @@ int command_demo_mode(int argc, const char * const * argv )
     printf("and 1 message to FLOW.  If you hold the button down for >3 \n");
     printf("seconds, it will exit demo mode and re-enter the monitor.\n\nconnecting...\n");
 
+
+    if( argc > 0 )
+        headless_timed = argc;
+
+    if( argv == NULL ) {
+        printf("ERROR: Must supply a FLOW URL\n");
+        return 0;
+        }
+
     url = (char*)argv;
-    if (dbg_flag & DBG_DEMO)
+
+     if (dbg_flag & DBG_DEMO)
         printf("using FLOW_BASE_URL of %s\n",url);
 
     binario_io_close();
@@ -350,8 +359,10 @@ int command_demo_mode(int argc, const char * const * argv )
         if( k > (sizeof(led_demo)/sizeof(LED_VAL)-1) ) 
             k = 0;
         while( button_press ); /* wait for the user to release the button */
-        if( keypress_time.tv_sec > 3 )
+        if( keypress_time.tv_sec > 3 ) {
+            if( headless == 1 ) headless = 0;
             done = 1;
+            }
         }
 
     gpio_deinit( &red_led);
@@ -360,6 +371,7 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_deinit( &user_key);
     gpio_deinit( &adctmr_hndl);
 
+    stop_IoTtimers();
     if (dbg_flag & DBG_DEMO)
         printf("Restarting the Monitor...\n");
     binary_io_init();

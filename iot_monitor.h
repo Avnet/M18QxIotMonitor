@@ -46,7 +46,6 @@
 #define DEFAULT_TEMP_API_STREAM (char*)"temp"
 #define DEFAULT_ADC_API_STREAM  (char*)"light_sens"
 
-//#define my_debug(x,...)	!headless?printf("DBG:" x,##__VA_ARGS__):(__VA_ARGS__);
 #define my_debug(x,...)	(__VA_ARGS__);
 
 #ifdef __cplusplus
@@ -123,7 +122,7 @@ extern int command_dbg(int argc, const char * const * argv );
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern int command_demo_mode(int, const char * const *);
+extern int command_demo_mode(int, const char * const * argv);
 extern unsigned int ascii_to_epoch(char *epoch_ascii);
 extern void doNewLine(void);
 #ifdef __cplusplus

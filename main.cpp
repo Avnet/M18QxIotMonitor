@@ -92,10 +92,10 @@ void usage (void)
 }
 
 static char demo_url[100];
-extern HTS221 *hts221;
 
 int main(int argc, char *argv[]) 
 {
+    HTS221 *hts221;
     extern void print_banner(void);
     extern float adc_threshold;
     int process_command (int argc, const char * const * argv);
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
     strcpy(api_key,  DEFAULT_API_KEY);
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:s:")) != -1 )
+    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:s")) != -1 )
         switch(c) {
            case 'm': //send data to M2X
                printf("-disable M2X transmissions\n");
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
                printf("-setting Stream Name to [%s]\n",temp_stream_name);
                break;
            case 'u':
-               headless=true;
+               headless=1;
                strcpy(demo_url,optarg);
                printf("-using URL [%s] for demo.\n",demo_url);
                break;
@@ -150,14 +150,17 @@ int main(int argc, char *argv[])
                printf("-debug flag set to 0x%04X\n",dbg_flag);
                break;
            case 'f':
-               headless=true;
+               headless=1;
                sscanf(optarg,"%d",&headless_timed);
                break;
            case 'x':
                sscanf(optarg,"%f",&adc_threshold);
                break;
+           case 's':
+               headless = 2;
+               break;
            case '?':
-               if (optopt == 'a' || optopt == 's' ||optopt == 'd')
+               if (optopt == 'a' || optopt == 'd')
                  fprintf (stderr, "Option -%c requires an argument.\n", optopt);
                else if (optopt == '\0')
                    usage();
@@ -202,7 +205,8 @@ int main(int argc, char *argv[])
 
     if( headless ) {
         doM2X=false;
-        command_headless(1, (const char* const *)demo_url );
+        command_headless(0, (const char* const *)demo_url );
+        app_exit();
         }
     
     print_banner();
