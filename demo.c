@@ -116,8 +116,9 @@ int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 //
 // toggle GPIO_PIN_3
 //
-            button_press = 1;
             relay2_val = !relay2_val;
+//jmfprintf("-BINIO: GPIO_PIN_3 set to %s\n",relay2_val?"ON":"OFF");
+            button_press = 1;
             gpio_write( relay2, (relay2_val)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
 
             clock_gettime(CLOCK_MONOTONIC, &key_press);
@@ -178,11 +179,11 @@ void gpio_adc_timer_task(size_t timer_id, void * user_data)
     adc_deinit(&my_adc);
 
     if( adc_voltage > adc_threshold ){
-        printf("-BINIO: turn ON GPIO_PIN_4\n");
+//jmf        printf("-BINIO: turn ON GPIO_PIN_4\n");
         gpio_write( adctmr_hndl, GPIO_LEVEL_HIGH );
         }
     else{
-        printf("-BINIO: turn OFF GPIO_PIN_4\n");
+//jmf        printf("-BINIO: turn OFF GPIO_PIN_4\n");
         gpio_write( adctmr_hndl, GPIO_LEVEL_LOW );
         }
 }
