@@ -189,7 +189,6 @@ int lis2dw12_initialize(void) {
     int i, v;
     const time_t t = time(0);
 
-//jmf printf("initialize the INTx inputs for LIS2DW12\n");
     gpio_init(GPIO_PIN_6, &int1_pin);
     gpio_init(GPIO_PIN_7, &int2_pin);
     gpio_dir(int1_pin, GPIO_DIR_INPUT);
@@ -437,7 +436,6 @@ int lis2dw12_int2_irq(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 
 void release_irqs(void)
 {
-//jmf printf("release INTx pins\n");
     gpio_deinit( &int1_pin);
     gpio_deinit( &int2_pin);
 }

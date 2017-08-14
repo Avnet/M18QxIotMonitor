@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
            }
 
     if( ft_mode ) {
-        command_facttest(argc, argv);
+        command_facttest(1, argv);
         app_exit();
         }
     

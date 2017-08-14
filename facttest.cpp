@@ -102,7 +102,7 @@ int gpio_ftirq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
     return 0;
 }
 
-int command_facttest(int argc __attribute__((unused)), const char *const *argv)
+int command_facttest(int argc, const char *const *argv)
 {
     extern GPIOPIN_IN gpio_input;
     MAX31855 max31855;
@@ -112,6 +112,19 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     pthread_t thread1;
     struct timeval start, end;  //measure duration of flow calls...
     double elapse=0;
+
+//
+// if ft_mopde == 0, we have been called from within the monitor program
+// so switch contest to factory test mdoe and restore it when leaving
+//
+    if( !ft_mode ) {
+        if( argc == 2 ) {
+            ft_time = atoi(argv[1]);
+            printf("-set factory test time to %d\n",ft_time);
+            }
+        binario_io_close();
+        ft_mode = 2;
+        }
 
     binary_io_init();
     gpio_deinit( &gpio_input.hndl);
@@ -224,6 +237,8 @@ int command_facttest(int argc __attribute__((unused)), const char *const *argv)
     gpio_deinit( &user_key);
 
     binario_io_close();
+    if( ft_mode == 2 ) 
+        ft_mode = 0;  //restore factory test mode to what it was origionally
     binary_io_init();
 }
 
