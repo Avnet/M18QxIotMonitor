@@ -88,6 +88,7 @@ void usage (void)
     printf("       NOTE: values can be combined, e.g., 23 is LIS2DW12+FLOW+CURL\n");
     printf(" -f #: Run the Demo application. Loop every # seconds\n");
     printf(" -x #: Set the ADC Threshold for demo mode to # (defaults to 0.1)\n");
+    printf(" -g #: Set a GPS timeout\n");
     printf(" -?  : Display usage info\n");
 }
 
@@ -98,6 +99,7 @@ int main(int argc, char *argv[])
     HTS221 *hts221;
     extern void print_banner(void);
     extern float adc_threshold;
+    extern int GPS_TO;
     int process_command (int argc, const char * const * argv);
     int c;
     void app_exit(void);
@@ -114,8 +116,12 @@ int main(int argc, char *argv[])
     strcpy(api_key,  DEFAULT_API_KEY);
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:s")) != -1 )
+    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
         switch(c) {
+           case 'g': //set a GPS timeout value
+               sscanf(optarg,"%d",&GPS_TO);
+               printf("-GPS Time Out set to %d seconds\n",GPS_TO);
+               break;
            case 'm': //send data to M2X
                printf("-disable M2X transmissions\n");
                doM2X=false;

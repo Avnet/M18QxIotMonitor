@@ -49,16 +49,20 @@ void wwan_io(int);
 static float lat;
 static float lng;
 static int   idx = 0;
+struct timeval gps_start, gps_end;  //measure duration of gps call...
+
+int GPS_TO = 90;
 
 void *check_gps(void *ptr)
 {
     json_keyval om[12];
-    int k, done, i;
+    double elapse=0;
+    int k, done, i, m;
 
     setGPSmode(4);
     getGPSconfig(om,sizeof(om));
     enableGPS();
-    done = 0;
+    m=done = 0;
     while( !done ) {
         k=getGPSlocation(om,sizeof(om));
         done = atoi(om[3].value)?1:0;
@@ -78,8 +82,22 @@ void *check_gps(void *ptr)
                     printf("GPS ERROR MESSAGE: %s\n",om[i].value);
                 }
             }
+        gettimeofday(&gps_end, NULL);
+        elapse = (((gps_end.tv_sec - gps_start.tv_sec)*1000) + (gps_end.tv_usec/1000 - gps_start.tv_usec/1000));
+        if( ((GPS_TO*1000)-round(elapse))/1000 < 0) {
+            done = 1;
+            printf("\rGPS Acquisiton TO (%d seconds)\n",(int)round(elapse)/1000);
+            }
+        else {
+            printf("\r%c",(m==0)?0x7C:(m==1)?0x2f:(m==2)?0x2d:0x5c);
+            fflush(stdout);
+            m++;
+            m %= 4;
+            usleep(250000);
+            }
         }
     disableGPS();
+    printf("\r");
     return NULL;
 }
 
@@ -110,7 +128,7 @@ int command_facttest(int argc, const char *const *argv)
     int i;
     float val;
     pthread_t thread1;
-    struct timeval start, end;  //measure duration of flow calls...
+    struct timeval start, end;          //measure duration of flow calls...
     double elapse=0;
 
 //
@@ -135,11 +153,6 @@ int command_facttest(int argc, const char *const *argv)
         sleep(10);
         i=start_data_service();
         }
-
-//    i=gpio_init( GPIO_PIN_1,  &boot_key); printf("initialize boot key gpio. (%d)\n",i);
-//    i=gpio_dir(boot_key, GPIO_DIR_INPUT); printf("set boot key direction (%d)\n",i);
-//    i=gpio_irq_request(boot_key, GPIO_IRQ_TRIG_BOTH, gpio_ftirq_callback); printf("set boot key as interrupt input. (%d)\n",i);
-
 
     if( (i=gpio_init( GPIO_PIN_98,  &user_key)) != 0 )
         printf("ERROR: unable to initialize user key gpio. (%d)\n",i);
@@ -180,6 +193,7 @@ int command_facttest(int argc, const char *const *argv)
 // so don't start it until we are done accessing the MAL for other info
 
     pthread_create( &thread1, NULL, check_gps, NULL);
+    gettimeofday(&gps_start, NULL);
 
     printf("\n---- ADC Test 4 ------------------------------\n");
     adc_handle_t my_adc=(adc_handle_t)NULL;
@@ -220,7 +234,8 @@ int command_facttest(int argc, const char *const *argv)
 
     printf("\n---- GPS Test 8 ------------------------------\n");
     pthread_join( thread1, NULL); //wait here for the GSP to finish
-    check_gps(NULL);
+
+//    check_gps(NULL);
     printf("GPS: Latitude      = %8.5f\n",lat);
     printf("GPS: Longitude     = %8.5f\n",lng);
 
