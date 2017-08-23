@@ -806,6 +806,7 @@ int command_headless(int argc, const char * const * argv )
     if( !argc ) 
         ptr = argv;
 
+    doM2X = false;
     command_demo_mode(i, ptr);
 }
 
