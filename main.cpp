@@ -206,6 +206,9 @@ int main(int argc, char *argv[])
     htsdev = (void*)hts221;
 
     c=hts221->getDeviceID();
+    if( !c )
+        printf("WARN: No HTS221 detected!\n");
+
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
 

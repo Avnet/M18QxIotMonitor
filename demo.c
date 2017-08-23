@@ -189,12 +189,12 @@ void gpio_adc_timer_task(size_t timer_id, void * user_data)
 int command_demo_mode(int argc, const char * const * argv )
 {
     char *url;
-    int start_data_service(void);
-    void wwan_io(int);
-    char cmd[1024], resp[1024];
-    char color[10];
-    int  done=0, k=0;
-
+    int   start_data_service(void);
+    void  wwan_io(int);
+    char  cmd[1024], resp[1024];
+    char  color[10];
+    int   done=0, k=0, i;
+    float hts221_temp, hts221_humid;
 
     if (dbg_flag & DBG_DEMO)
         printf("-Demo: Starting Demo Mode.\n");
@@ -296,10 +296,15 @@ int command_demo_mode(int argc, const char * const * argv )
 
 //----
         {
-        while( !hts221_getHumidity() );
-        while( !hts221_getTemperature() );
-        float hts221_temp = hts221_readTemperature();
-        float hts221_humid= hts221_readHumidity();
+        i = hts221_getDeviceID();
+        if( !i ) 
+            printf("WARN: No HTS221 detected! Temp & Humidity value will be 0\n");
+        else {
+            while( !hts221_getHumidity() );
+            while( !hts221_getTemperature() );
+            hts221_temp = hts221_readTemperature();
+            hts221_humid= hts221_readHumidity();
+            }
         float adc_voltage, x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);

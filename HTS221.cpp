@@ -22,7 +22,6 @@ HTS221::HTS221(void) : _temperature(0.0), _humidity(0.0)
     _iAm = readRegister(WHO_AM_I);
     if (_iAm != I_AM_HTS221)
         return;
-//    activate();
     _hts221Inited = 1;
 }
 
@@ -276,7 +275,7 @@ bool HTS221::getTemperature(void)
 uint8_t HTS221::readRegister(uint8_t reg_addr)
 {
     i2c_handle_t my_handle = 0;
-    uint8_t value_read;
+    uint8_t value_read=0;
     int i;
 
     if( dbg_flag & DBG_I2C )
