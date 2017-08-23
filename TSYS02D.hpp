@@ -85,8 +85,10 @@ public:
         reset();
 
         _err=writeRegister((uint8_t)(GETSN8_CMD >>8), (uint8_t)(GETSN8_CMD&0xff), 1);
+        if( _err ) 
+            return;
         i2c_bus_init(I2C_BUS_I, &my_handle);
-        _err+=i2c_read(my_handle, TSYS02D_SAD, buf, 8);
+        _err=i2c_read(my_handle, TSYS02D_SAD, buf, 8);
         i2c_bus_deinit(&my_handle);
         if( _err ) 
             return;
