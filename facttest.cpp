@@ -1,5 +1,4 @@
 
-
 #include <unistd.h>
 #include <cctype>
 #include <cstddef>
@@ -46,12 +45,13 @@ void wwan_io(int);
 }
 #endif
 
-static float lat;
-static float lng;
+float lat;
+float lng;
+int   alt;
 static int   idx = 0;
 struct timeval gps_start, gps_end;  //measure duration of gps call...
 
-int GPS_TO = 90;
+int GPS_TO = 120;  //default is 120 seconds to get GPS fix
 
 void *check_gps(void *ptr)
 {
@@ -72,6 +72,9 @@ void *check_gps(void *ptr)
                 }
             else if( !strcmp(om[i].key,"longitude") ) {
                 sscanf( om[i].value, "%f", &lng);
+                }
+            else if( !strcmp(om[i].key,"altitude") ) {
+                sscanf( om[i].value, "%d", &alt);
                 }
             else if( !strcmp(om[i].key,"errno") ) {
                 if( atoi(om[i].value) )
@@ -102,15 +105,14 @@ void *check_gps(void *ptr)
 }
 
 
-static volatile int  user_press;
-static gpio_handle_t boot_key, user_key, red_led, green_led, blue_led;
+volatile int  user_press;
+extern gpio_handle_t boot_key, user_key, red_led, green_led, blue_led;
 
 #define WAIT_FOR_BPRESS(x) {while( !x ); while( x );}
 
 int gpio_ftirq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     int *key;
-
     if (pin_name == GPIO_PIN_98) 
         key= (int*)&user_press;
     else
@@ -133,7 +135,7 @@ int command_facttest(int argc, const char *const *argv)
 
 //
 // if ft_mopde == 0, we have been called from within the monitor program
-// so switch contest to factory test mdoe and restore it when leaving
+// so switch context to factory test mdoe and restore it when leaving
 //
     if( !ft_mode ) {
         if( argc == 2 ) {
@@ -204,13 +206,13 @@ int command_facttest(int argc, const char *const *argv)
     adc_deinit(&my_adc);
 
     printf("\n---- I2C Test 5 ------------------------------\n");
-    printf("I2C: LIS2DW12 ID   = 0x%02X\n", lis2dw12_getDeviceID());
+    printf("I2C: LIS2DW12 ID   = 0x%02X (expect 0x44)\n", lis2dw12_getDeviceID());
     printf("I2C: PMOD/HTS ID   = ");
     HTS221 *hts221 = new HTS221;
     if( (i=hts221->getDeviceID()) == 0xff )
         printf("FAIL\n");
     else
-        printf("0x%02X\n",i);
+        printf("0x%02X (expect 0xBC)\n",i);
 
     printf("\n---- SPI Test 6 ------------------------------\n");
     printf("SPI: PMOD Result   = %s\n", max31855.loopbackTest()?"PASS":"FAIL");
@@ -232,7 +234,7 @@ int command_facttest(int argc, const char *const *argv)
     do_gpio_blink( 0, 1 );
     gettimeofday(&start, NULL);
 
-    printf("\n---- GPS Test 8 ------------------------------\n");
+    printf("\n---- GPS Test 8 -- May take up to %4d seconds-\n", GPS_TO);
     pthread_join( thread1, NULL); //wait here for the GSP to finish
 
 //    check_gps(NULL);
@@ -249,8 +251,9 @@ int command_facttest(int argc, const char *const *argv)
         sleep(i);
         }
     printf("\n\n");
-    gpio_deinit( &user_key);
 
+    do_gpio_blink( 0, 0 );
+    gpio_deinit( &user_key);
     binario_io_close();
     if( ft_mode == 2 ) 
         ft_mode = 0;  //restore factory test mode to what it was origionally

@@ -37,6 +37,7 @@
 #define DBG_DEMO	0x0400
 #define DBG_I2C		0x0800
 #define DBG_SPI		0x1000
+#define DBG_EMISSIN	0x2000
 
 #define MONITOR_PROMPT	((char*)"MON> ")
 #define FACTORY_PROMPT	((char*)"WNC> ")
@@ -118,6 +119,7 @@ extern int command_adc(int argc, const char * const * argv );
 extern int command_headless(int argc, const char * const * argv );
 extern int command_facttest(int argc, const char * const * argv );
 extern int command_dbg(int argc, const char * const * argv );
+extern int command_VL53L0X(int argc, const char * const * argv );
 
 #ifdef __cplusplus
 extern "C" {
@@ -125,6 +127,7 @@ extern "C" {
 extern int command_demo_mode(int, const char * const * argv);
 extern unsigned int ascii_to_epoch(char *epoch_ascii);
 extern void doNewLine(void);
+void *check_gps(void *);
 #ifdef __cplusplus
 }
 #endif

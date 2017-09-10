@@ -189,16 +189,16 @@ int lis2dw12_initialize(void) {
     int i, v;
     const time_t t = time(0);
 
-    gpio_init(GPIO_PIN_6, &int1_pin);
-    gpio_init(GPIO_PIN_7, &int2_pin);
-    gpio_dir(int1_pin, GPIO_DIR_INPUT);
-    gpio_dir(int2_pin, GPIO_DIR_INPUT);
-
-    if( (i=gpio_irq_request(int1_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int1_irq)) != 0)
-        printf("ERROR: can't set int1 as interrupt input. (%d)\n",i);
-
-    if( (i=gpio_irq_request(int2_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int2_irq)) != 0)
-        printf("ERROR: can't set int2 as interrupt input. (%d)\n",i);
+//jmf    gpio_init(GPIO_PIN_6, &int1_pin);
+//jmf    gpio_init(GPIO_PIN_7, &int2_pin);
+//jmf    gpio_dir(int1_pin, GPIO_DIR_INPUT);
+//jmf    gpio_dir(int2_pin, GPIO_DIR_INPUT);
+//jmf
+//jmf    if( (i=gpio_irq_request(int1_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int1_irq)) != 0)
+//jmf        printf("ERROR: can't set int1 as interrupt input. (%d)\n",i);
+//jmf
+//jmf    if( (i=gpio_irq_request(int2_pin, GPIO_IRQ_TRIG_FALLING, lis2dw12_int2_irq)) != 0)
+//jmf        printf("ERROR: can't set int2 as interrupt input. (%d)\n",i);
 
     for( i=0; i<REG_SIZE; i++ ) {
         if( lis2dw12_registers[i].rw ) {

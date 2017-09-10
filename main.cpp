@@ -1,25 +1,20 @@
 /* =====================================================================
    Copyright © 2016, Avnet (R)
-
    Contributors:
      * James M Flynn, www.em.avnet.com 
  
    Licensed under the Apache License, Version 2.0 (the "License"); 
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
    Unless required by applicable law or agreed to in writing, 
    software distributed under the License is distributed on an 
    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, 
    either express or implied. See the License for the specific 
    language governing permissions and limitations under the License.
-
     @file          WNC_GMDemo1.cpp
     @version       1.0
     @date          Jan 2017
-
 ======================================================================== */
 
 #include <stdint.h>
@@ -51,6 +46,8 @@
 #include "binio.h"
 
 static struct termios oldt, newt; //used to store and change the terminal attributes during program usage
+
+void do_emissions_test(void);  //this test is for performing CE/FCC emissions testing
 
 //
 // This function is used to output data to the terminal as it is typed
@@ -89,6 +86,7 @@ void usage (void)
     printf(" -f #: Run the Demo application. Loop every # seconds\n");
     printf(" -x #: Set the ADC Threshold for demo mode to # (defaults to 0.1)\n");
     printf(" -g #: Set a GPS timeout\n");
+    printf(" -9  : Run Emissons Test \n");
     printf(" -?  : Display usage info\n");
 }
 
@@ -103,6 +101,7 @@ int main(int argc, char *argv[])
     int process_command (int argc, const char * const * argv);
     int c;
     void app_exit(void);
+    int emission_test = 0;
 #ifdef _USE_COMPLETE
     char ** complet (int argc, const char * const * argv);
 #endif
@@ -116,8 +115,11 @@ int main(int argc, char *argv[])
     strcpy(api_key,  DEFAULT_API_KEY);
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
+    while((c=getopt(argc,argv,"?9mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
         switch(c) {
+           case '9': //run in FCC mode
+               emission_test = 1;
+               break;
            case 'g': //set a GPS timeout value
                sscanf(optarg,"%d",&GPS_TO);
                printf("-GPS Time Out set to %d seconds\n",GPS_TO);
@@ -183,6 +185,11 @@ int main(int argc, char *argv[])
         app_exit();
         }
     
+    if( emission_test ) {
+        do_emissions_test();
+        app_exit();
+        }
+
     c=start_data_service();
     while ( c < 0 ) {
         printf("WAIT: starting WNC Data Module (%d)\n",c);
@@ -206,9 +213,6 @@ int main(int argc, char *argv[])
     htsdev = (void*)hts221;
 
     c=hts221->getDeviceID();
-    if( !c )
-        printf("WARN: No HTS221 detected!\n");
-
     if( dbg_flag & DBG_HTS221 )
         printf("-HTS221: hts221_getDeviceID() = 0x%02X\n", c);
 
@@ -219,6 +223,7 @@ int main(int argc, char *argv[])
         }
     
     print_banner();
+
     set_cmdhandler(&my_putchar, (char*)MONITOR_PROMPT, strlen(MONITOR_PROMPT), 
                    app_exit, &process_command, complet, mon_command_table);
     new_line_handler(prl);
@@ -266,5 +271,4 @@ void app_exit(void)
     tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
     exit(EXIT_SUCCESS);
 }
-
 

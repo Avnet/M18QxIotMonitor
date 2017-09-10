@@ -1,3 +1,6 @@
+
+ACLOCAL_AMFLAGS = -I m4
+
 jim_demo_CPPFLAGS = -I. -Wall -static \
         -g -O0 \
         -std=c++14 \
@@ -8,10 +11,10 @@ jim_demo_CPPFLAGS = -I. -Wall -static \
         -pthread \
 	-ljson-c \
         -lcurl \
+        -lVL53L1 \
         -lhw 
 
-
-jim_demo_CFLAGS = -Wall -static \
+jim_demo_CFLAGS = -I. -Wall -static \
         -g -O0 \
         -pthread \
         -fno-inline \
@@ -19,15 +22,17 @@ jim_demo_CFLAGS = -Wall -static \
         -fno-short-enums \
 	-ljson-c \
         -lcurl \
+        -lVL53L1 \
         -lhw 
 
-AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw  
+AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw -lVL53L1 -L./vl53l0x
 
 iot_monitor_SOURCES = main.cpp microrl.cpp HTU21D.cpp  \
                       commands.cpp mal.cpp maljson.cpp \
                       MAX31855.cpp facttest.cpp MS5637.cpp \
                       binio.c jsmn.c  HTS221.cpp mytimer.c \
-                      http.c lis2dw12.c m2x.c demo.c wwan.c
+                      http.c lis2dw12.c m2x.c demo.c wwan.c \
+                      LightRanger.cpp emissions.cpp
 
 bin_PROGRAMS = iot_monitor 
 
