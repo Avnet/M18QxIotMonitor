@@ -1,0 +1,152 @@
+For information only: RANGING_SENSOR_COMMS.dll
+==============================================
+
+
+Dependencies
+============
+
+* None.
+
+
+Comms types
+===========
+
+This plugin supports the following comms types:
+
+"V2W8"        (V2W8 I2C comms)
+"CCI"         (CCI I2C comms)
+"SPI_V2W8"    (Ewok SPI comms)
+"SPI_16I"     (PolarBear SPI comms)
+
+When using v2wReg, one of these strings should appear beside the $COMMS_TYPE token near the beginning of the map, to tell v2wReg which functions in the comms plugin DLL to execute for comms.
+
+E.g. if v2wReg sees the following at the start of a map:
+
+$COMMS_TYPE "V2W8"
+
+...and then this plugin is selected by the user as the desired comms platform, v2wReg will call the following functions in the plugin DLL to execute register reads and writes:
+
+RANGING_SENSOR_COMMS_Read_V2W8
+RANGING_SENSOR_COMMS_Write_V2W8
+
+Similarly, if the v2wReg automation function 'MakeConnection' is used (where loading a map is not necessary), the first parameter of this function should specify the comms type.
+
+
+Parameters (All)
+================
+$PARAM "I2C_SPEED_KHZ=[speed_khz]" - default 400
+$PARAM "LOCK_TIMEOUT=[delay in ms] - default 5000
+
+The Ranging Sensor EVK supports I2C speeds of between 100KHz and 1000KHz.
+
+All HID operations take place in multiple transactions to the STM32 FW. As such, locking is implemented to ensure no overlapped operations ocurr. 
+Timeout for all locking operations defaults to 5000ms. If this timeout is exeeded (i.e. another process has held the lock for over 5000ms) then 
+a comms error is returned.
+
+Parameters (CCI)
+================
+
+$PARAM "I2C_SPEED_KHZ=[speed]" - the I2C bus speed for all bus transactions
+
+Parameters (V2W8)
+=================
+
+$PARAM "I2C_SPEED_KHZ=[speed]" - the I2C bus speed for all bus transactions
+$PARAM "PAGING_ENABLE=[TRUE|FALSE]" - default FALSE
+$PARAM "PAGING_SELECT=[Page Select Register Index]" - default 0 (only used if PAGING_ENABLE is set)
+$PARAM "INDEX_MASK=[index mask value]" - used to mask off any bits of all register indices
+When paging mode is enabled, the high byte of the target regsiter index must contain the page select value, and the low byte contains the real target register index.
+The following operation happens for every register read or write...
+  1. Page Select Write: where the value in PAGING_SELECT identifies the paging select register, and the high byte of the target regsiter index identifies the page number.
+     A standard V2W8 write command is sent as follows... write_v2w8([address], [PAGING_SELECT_INDEX], [target_index_hi_byte]).
+  2. Regiser Read/Write: the high byte of the register index is dropped, and a standard V2W8 register write takes place to the regiser identified in low byte of the index value.
+     A standard read/write V2W8 command is sent as, for example... write_v2w8([address], [target_index_lo_byte], [data]).
+
+Parameters (SPI_V2W8)
+=====================
+
+$PARAM "PAGING_ENABLE=[TRUE|FALSE]" - default FALSE
+$PARAM "PAGING_SELECT=[Page Select Register Index]" - default 0 (only used if PAGING_ENABLE is set)
+$PARAM "INDEX_MASK=[index mask value]" - used to mask off any bits of all register indices
+$PARAM "PAGE_SHIFT=[shift value]" - in paging mode, pre-shift the 16-bit index value before extracting the high byte of the page number
+When paging mode is enabled, the high byte of the target regsiter index must contain the page select value, and the low byte contains the real target register index.
+The following operation happens for every register read or write...
+  1. Page Select Write: where the value in PAGING_SELECT identifies the paging select register, and the high byte of the target regsiter index identifies the page number.
+     A standard V2W8 write command is sent as follows... write_v2w8([address], [PAGING_SELECT_INDEX], [target_index_hi_byte]).
+  2. Regiser Read/Write: the high byte of the register index is dropped, and a standard V2W8 register write takes place to the regiser identified in low byte of the index value.
+     A standard read/write V2W8 command is sent as, for example... write_v2w8([address], [target_index_lo_byte], [data]).
+
+Parameters (SPI_16I)
+================
+
+None
+
+
+Non Standard Functions
+======================
+
+In addition to the Comms API defined functions, the following functions are also available on this library...
+
+COMMS_API DWORD RANGING_SENSOR_COMMS_Write_Raw_I2C(BYTE cAddress, DWORD dwNoBytes, BYTE* pcWriteBuf);
+	Writes of a buffer onto the I2C bus.
+
+COMMS_API DWORD RANGING_SENSOR_COMMS_Read_Raw_I2C(BYTE cAddress, DWORD dwNoBytes, BYTE* pcWriteBuf);
+	Reads a number of bytes from the I2C bus.
+
+COMMS_API DWORD RANGING_SENSOR_COMMS_Write_System_I2C(BYTE cAddress, DWORD dwNoBytes, BYTE* pcWriteBuf);
+	Writes of a buffer onto the I2C3 bus on the STM32 (system bus on the PCB1537).
+
+COMMS_API DWORD RANGING_SENSOR_COMMS_Read_System_I2C(BYTE cAddress, DWORD dwNoBytes, BYTE* pcWriteBuf);
+	Reads a number of bytes from the I2C3 bus on the STM32 (system bus on the PCB1537).
+
+DWORD RANGING_SENSOR_COMMS_Set_I2C_Bus_Speed(DWORD I2C_bus_speed_khz);
+	Sets the I2C bus speed for the attached hardware
+	The DLL stops all HID communication to the Raning Sensor EVK the sends the command to the Raning Sensor EVK. The Ranging Sensor EVK terminates I2C and re-initialises I2C with the new bus speed.
+	All attached processor using the Raning Sensor EVK will be impacted.
+	
+DWORD RANGING_SENSOR_COMMS_Get_I2C_Bus_Speed();
+	Returns the comms DLLs version of the last I2C bus speed to be set.
+
+DWORD RANGING_SENSOR_COMMS_Cycle_Sensor_Power();
+	Toggles DVDD_EN which results in a DVDD power cycle on the plugin.
+	I2C comms are terminated and re-initialised in the FW.
+
+version_info RANGING_SENSOR_COMMS_GetVersion();
+	Returns the version of the Ranging Sensor EVK Comms DLL.
+
+version_info RANGING_SENSOR_COMMS_GetFirmwareVersion();
+	Returns the version of the Ranging Sensor EVK FW.
+
+
+
+DWORD RANGING_SENSOR_COMMS_Lock_V2W8(PVOID phMutex);
+	Locks the synchronisation parameter used for all HID comms to be Ranging Sensor EVK.
+	This function is used to request exclusive access to Ranging Sensor EVK before executing a number of comms operations.
+
+DWORD RANGING_SENSOR_COMMS_Unlock_V2W8(PVOID phMutex);  // phMutex must be a pointer to a HANDLE
+	Releases the lock previously requested via RANGING_SENSOR_COMMS_Lock_V2W8().
+	All successfull calls to RANGING_SENSOR_COMMS_Lock_V2W8() must call this function to release to communication lock.
+
+DWORD RANGING_SENSOR_COMMS_Read_Nolock_V2W8(BYTE address, BYTE index, BYTE* dataout, BYTE buffer_size);
+	Reads registers from the Ranging Sensor EVK.
+	As this function doesn't itself claim exclusive access to the Ranging Sensor EVK, the user must first call RANGING_SENSOR_COMMS_Lock_V2W8() to avoid the possibility of overlapped comms operations.
+	Once RANGING_SENSOR_COMMS_Lock_V2W8() has been called, the used is free to call RANGING_SENSOR_COMMS_Lock_V2W8() or RANGING_SENSOR_COMMS_Write_Nolock_V2W8() as many times as required.
+
+DWORD RANGING_SENSOR_COMMS_Write_Nolock_V2W8(BYTE address, BYTE index, BYTE* datain, BYTE buffer_size);
+	Writes registers to the Ranging Sensor EVK.
+	User must take care of gaining exclusive access to the I2C bus, as per RANGING_SENSOR_COMMS_Read_Nolock_V2W8().
+
+DWORD RANGING_SENSOR_COMMS_GPIO_Pulse(RS_GPIO_Pin pin, DWORD period_width_ms, DWORD pulse_width_ms);
+    Send single pulse out on specified GPIO (not all GPIO support pulses - see STM32 documentation)
+
+DWORD RANGING_SENSOR_COMMS_GPIO_Get_Value(RS_GPIO_Pin pin, DWORD* pvalue);
+    Get the value of a specified GPIO pin (actual pin mapping is specific to the STM32 device e.g. Ranging Sensor EVK, BabyBear EVK etc...)
+
+DWORD RANGING_SENSOR_COMMS_GPIO_Set_Value(RS_GPIO_Pin pin, DWORD value);
+    Set the value of a specified GPIO pin (actual pin mapping is specific to the STM32 device e.g. Ranging Sensor EVK, BabyBear EVK etc...)
+
+DWORD RANGING_SENSOR_COMMS_GPIO_Set_Mode(RS_GPIO_Pin pin, GPIO_Mode mode);
+    Set the mode of a specified GPIO pin (actual pin mapping is specific to the STM32 device e.g. Ranging Sensor EVK, BabyBear EVK etc...)
+
+DWORD RANGING_SENSOR_COMMS_Set_Led_Enable(BYTE LED, BYTE enable);
+    Sets the state of individual LEDs to allow user to disable for scenarios such as dark room setups
