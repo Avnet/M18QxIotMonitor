@@ -34,52 +34,60 @@ rm libVL53L1.a
 
 # compile platform
 echo compile platform
-cmpil "$PlatformRoot/src" vl53l1_platform_log
-cmpil "$PlatformRoot/src" vl53l1_platform_init
-cmpil "$PlatformRoot/src" vl53l1_platform_ipp
-cmpil "$PlatformRoot/src" vl53l1_platform
+#cmpil "$PlatformRoot/src" vl53l1_platform_init
+#cmpil "$PlatformRoot/src" vl53l1_platform_ipp
+cmpil "$PlatformRoot/src" vl53l0x_platform_log
+cmpil "$PlatformRoot/src" vl53l0x_platform
+cmpil "$PlatformRoot/src" vl53l0x_i2c_win_serial_comms
+
 
 # compile api
-echo compile api
-cmpil "$ApiRoot/core/src" vl53l1_api
-cmpil "$ApiRoot/core/src" vl53l1_api_core
-cmpil "$ApiRoot/core/src" vl53l1_api_preset_modes
-cmpil "$ApiRoot/core/src" vl53l1_api_strings
-cmpil "$ApiRoot/core/src" vl53l1_core
-cmpil "$ApiRoot/core/src" vl53l1_hist_char
-cmpil $ApiRoot/core/src vl53l1_register_funcs
+#echo compile api
+#cmpil "$ApiRoot/core/src" vl53l1_api
+#cmpil "$ApiRoot/core/src" vl53l1_api_core
+#cmpil "$ApiRoot/core/src" vl53l1_api_preset_modes
+#cmpil "$ApiRoot/core/src" vl53l1_api_strings
+#cmpil "$ApiRoot/core/src" vl53l1_core
+#cmpil "$ApiRoot/core/src" vl53l1_hist_char
+#cmpil $ApiRoot/core/src vl53l1_register_funcs
 
 # compile protected
-echo compile protected
-cmpil "$ProtectedRoot/src" vl53l1_dmax
-cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen2
-cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen3
-cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen4
-cmpil "$ProtectedRoot/src" vl53l1_xtalk
-cmpil "$ProtectedRoot/src" vl53l1_hist_funcs
-cmpil "$ProtectedRoot/src" vl53l1_sigma_estimate
-cmpil "$ProtectedRoot/src" vl53l1_hist_core
-cmpil "$ProtectedRoot/src" vl53l1_xtalk
+#echo compile protected
+#cmpil "$ProtectedRoot/src" vl53l1_dmax
+#cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen2
+#cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen3
+#cmpil "$ProtectedRoot/src" vl53l1_hist_algos_gen4
+#cmpil "$ProtectedRoot/src" vl53l1_xtalk
+#cmpil "$ProtectedRoot/src" vl53l1_hist_funcs
+#cmpil "$ProtectedRoot/src" vl53l1_sigma_estimate
+#cmpil "$ProtectedRoot/src" vl53l1_hist_core
+#cmpil "$ProtectedRoot/src" vl53l1_xtalk
 
 # compile core
 echo compile core
-cmpil "$CoreRoot/src" vl53l1_core_support
-cmpil "$CoreRoot/src" vl53l1_nvm
-cmpil "$CoreRoot/src" vl53l1_api
-cmpil "$CoreRoot/src" vl53l1_api_preset_modes
-cmpil "$CoreRoot/src" vl53l1_error_strings
-cmpil "$CoreRoot/src" vl53l1_nvm_debug
-cmpil "$CoreRoot/src" vl53l1_zone_presets
-cmpil "$CoreRoot/src" vl53l1_api_calibration
-cmpil "$CoreRoot/src" vl53l1_api_strings
-cmpil "$CoreRoot/src" vl53l1_fpga_core
-cmpil "$CoreRoot/src" vl53l1_register_funcs
-cmpil "$CoreRoot/src" vl53l1_api_core
-cmpil "$CoreRoot/src" vl53l1_core
-cmpil "$CoreRoot/src" vl53l1_hist_char
-cmpil "$CoreRoot/src" vl53l1_silicon_core
-cmpil "$CoreRoot/src" vl53l1_api_debug
-cmpil "$CoreRoot/src" vl53l1_wait
+#cmpil "$CoreRoot/src" vl53l1_core_support
+#cmpil "$CoreRoot/src" vl53l1_nvm
+#cmpil "$CoreRoot/src" vl53l1_api
+#cmpil "$CoreRoot/src" vl53l1_api_preset_modes
+#cmpil "$CoreRoot/src" vl53l1_error_strings
+#cmpil "$CoreRoot/src" vl53l1_nvm_debug
+#cmpil "$CoreRoot/src" vl53l1_zone_presets
+#cmpil "$CoreRoot/src" vl53l1_api_calibration
+#cmpil "$CoreRoot/src" vl53l1_api_strings
+#cmpil "$CoreRoot/src" vl53l1_fpga_core
+#cmpil "$CoreRoot/src" vl53l1_register_funcs
+#cmpil "$CoreRoot/src" vl53l1_api_core
+#cmpil "$CoreRoot/src" vl53l1_core
+#cmpil "$CoreRoot/src" vl53l1_hist_char
+#cmpil "$CoreRoot/src" vl53l1_silicon_core
+#cmpil "$CoreRoot/src" vl53l1_api_debug
+#cmpil "$CoreRoot/src" vl53l1_wait
+cmpil "$CoreRoot/src" vl53l0x_api_core
+cmpil "$CoreRoot/src" vl53l0x_api_calibration
+cmpil "$CoreRoot/src" vl53l0x_api
+cmpil "$CoreRoot/src" vl53l0x_api_ranging
+cmpil "$CoreRoot/src" vl53l0x_api_strings
+
 
 
 echo compile test app

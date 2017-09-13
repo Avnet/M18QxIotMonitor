@@ -113,6 +113,7 @@ int command_htu21d(int argc, const char * const * argv );
 int command_tsys02d(int argc, const char * const * argv );
 int command_tsys01(int argc, const char * const * argv );
 int command_kma36(int argc, const char * const * argv );
+int command_VL53L0X(int argc, const char * const * argv );
 void do_hts2m2x(void);
 
 void sigint_cb (void);
@@ -145,6 +146,8 @@ const cmd_entry mon_command_table[] =
      "TSYS02D       Read the TSYS02D Temperature sensor (if present)",                          command_tsys02d,
   0, "TSYS01",      
      "TSYS01        Read the TSYS01 Temperature sensor (if present)",                           command_tsys01,
+  0, "VL53L0X",      
+     "VL53L0X #     Read the LightRanger/VL53L0X sensor (if present); #=duration",              command_VL53L0X,
   0, "KMA36",      
      "KMA36         Read the KMA36 sensor (if present)",                                        command_kma36,
   0, "GPS",         
@@ -805,8 +808,6 @@ int command_headless(int argc, const char * const * argv )
 
     if( !argc ) 
         ptr = argv;
-
-    doM2X = false;
     command_demo_mode(i, ptr);
 }
 
