@@ -11,8 +11,7 @@ jim_demo_CPPFLAGS = -I. -Wall -static \
         -pthread \
 	-ljson-c \
         -lcurl \
-        -lVL53L1 \
-        -lhw 
+        -lhw \
 
 jim_demo_CFLAGS = -I. -Wall -static \
         -g -O0 \
@@ -22,8 +21,7 @@ jim_demo_CFLAGS = -I. -Wall -static \
         -fno-short-enums \
 	-ljson-c \
         -lcurl \
-        -lVL53L1 \
-        -lhw 
+        -lhw  \
 
 AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw -lVL53L1 -L./vl53l0x
 

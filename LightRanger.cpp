@@ -26,7 +26,7 @@ int command_VL53L0X(int argc, const char * const * argv )
     else
         dur = 1;
  
-    test_vl53l0x();
+//    test_vl53l0x();
 
 #if 0
     if (tof.chkVL53L0X()) {
