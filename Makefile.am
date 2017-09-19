@@ -12,6 +12,7 @@ jim_demo_CPPFLAGS = -I. -Wall -static \
 	-ljson-c \
         -lcurl \
         -lhw \
+        -lvl53l0x
 
 jim_demo_CFLAGS = -I. -Wall -static \
         -g -O0 \
@@ -22,15 +23,16 @@ jim_demo_CFLAGS = -I. -Wall -static \
 	-ljson-c \
         -lcurl \
         -lhw  \
+        -lvl53l0x
 
 AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw -lVL53L1 -L./vl53l0x
 
 iot_monitor_SOURCES = main.cpp microrl.cpp HTU21D.cpp  \
-                      commands.cpp mal.cpp maljson.cpp \
+                      commands.cpp mal.cpp maljson.cpp qsapp.cpp \
                       MAX31855.cpp facttest.cpp MS5637.cpp \
                       binio.c jsmn.c  HTS221.cpp mytimer.c \
                       http.c lis2dw12.c m2x.c demo.c wwan.c \
-                      LightRanger.cpp emissions.cpp
+                      LightRanger.cpp emissions.cpp 
 
 bin_PROGRAMS = iot_monitor 
 

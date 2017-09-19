@@ -84,6 +84,7 @@ void usage (void)
     printf("       1000 = SPI\n");
     printf("       NOTE: values can be combined, e.g., 23 is LIS2DW12+FLOW+CURL\n");
     printf(" -f #: Run the Demo application. Loop every # seconds\n");
+    printf(" -q #: Run the Quick Start application. Delay # seconds between M2X postings.\n");
     printf(" -x #: Set the ADC Threshold for demo mode to # (defaults to 0.1)\n");
     printf(" -g #: Set a GPS timeout\n");
     printf(" -9  : Run Emissons Test \n");
@@ -94,14 +95,17 @@ static char demo_url[100];
 
 int main(int argc, char *argv[]) 
 {
-    HTS221 *hts221;
-    extern void print_banner(void);
-    extern float adc_threshold;
-    extern int GPS_TO;
-    int process_command (int argc, const char * const * argv);
-    int c;
+    HTS221        *hts221;
+    extern float  adc_threshold;
+    extern int    GPS_TO;
+    int           c, qsa=0;
+    int           emission_test = 0;
+
+    void print_banner(void);
+    int  process_command (int argc, const char * const * argv);
+    int  quickstart_app(int argc, const char * const * argv );
     void app_exit(void);
-    int emission_test = 0;
+
 #ifdef _USE_COMPLETE
     char ** complet (int argc, const char * const * argv);
 #endif
@@ -115,7 +119,7 @@ int main(int argc, char *argv[])
     strcpy(api_key,  DEFAULT_API_KEY);
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?9mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
+    while((c=getopt(argc,argv,"?q:9mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
         switch(c) {
            case '9': //run in FCC mode
                emission_test = 1;
@@ -159,6 +163,10 @@ int main(int argc, char *argv[])
                break;
            case 'f':
                headless=1;
+               sscanf(optarg,"%d",&headless_timed);
+               break;
+           case 'q':
+               qsa = 1;  //signal to run Quick Start Application
                sscanf(optarg,"%d",&headless_timed);
                break;
            case 'x':
@@ -208,6 +216,11 @@ int main(int argc, char *argv[])
     c=lis2dw12_getDeviceID();
     if( dbg_flag & DBG_LIS2DW12 )
         printf("-LIS2DW12: lis2dw12_getDeviceID()= 0x%02X\n",c);
+
+    if( qsa ) {
+        quickstart_app(headless_timed, (const char* const *)demo_url );
+        app_exit();
+        }
 
     hts221 = new HTS221;
     htsdev = (void*)hts221;

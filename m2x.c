@@ -108,9 +108,9 @@ void do_adc2m2x(void)
     float adc_voltage;
     char str_adc_voltage[16];
     
-        if( dbg_flag & DBG_M2X )
-                printf("-M2x: Tx (adc) M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
-            device_id, api_key, adc_stream_name);
+    if( dbg_flag & DBG_M2X )
+        printf("-M2x: Tx (adc) M2X data to:\n-DeviceID = [%s]\n-API Key=[%s]\n-Stream Name=[%s]\n",
+                 device_id, api_key, adc_stream_name);
 
     m2x_create_stream(device_id, api_key, adc_stream_name);
 
@@ -128,7 +128,6 @@ void do_adc2m2x(void)
 
 void do_lis2dw2m2x(void)
 {
-    adc_handle_t my_adc=(adc_handle_t)NULL;
     char str_val[16];
     
     sprintf(str_val, "%f", lis2dw12_readTemp12());

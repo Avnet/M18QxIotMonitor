@@ -107,7 +107,6 @@ void set_color( char *color )
 int gpio_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     gpio_level_t the_val=0;
-
 	if (pin_name != GPIO_PIN_98) {
             return 0;
             }
