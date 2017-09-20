@@ -1,8 +1,7 @@
 /* =====================================================================
    Copyright © 2016, Avnet (R)
 
-   Contributors:
-     * James M Flynn, www.em.avnet.com 
+   www.avnet.com 
  
    Licensed under the Apache License, Version 2.0 (the "License"); 
    you may not use this file except in compliance with the License.
@@ -18,10 +17,9 @@
 
     @file          TSYS01.hpp
     @version       1.0
-    @date          July 2017
+    @date          Sept 2017
 
 ======================================================================== */
-
 
 #include <stdint.h>
 #include <stdio.h>
