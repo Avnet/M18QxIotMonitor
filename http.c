@@ -551,3 +551,31 @@ void m2x_list_devices ( const char *api_key_ptr, char *ret_buffer)
     http_deinit(&get_req);
 }
 
+
+void m2x_device_info ( const char *api_key_ptr, char *iccid_ptr, char *ret_buffer)
+{
+    http_info_t get_req;
+    char tmp_buff1[256];
+    char *url = "http://api-m2x.att.com/v2/devices";
+    int  i;
+
+    memset(&get_req, 0, sizeof(http_info_t));
+    http_init(&get_req, 1);
+
+    sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+    get_req.header = http_add_field(get_req.header, "Accept: */*");
+    get_req.header = http_add_field(get_req.header, "Content-Type: application/json");
+    get_req.header = http_add_field(get_req.header, tmp_buff1);
+
+    sprintf(tmp_buff1, "http://api-m2x.att.com/v2/devices/search?serial=%s", iccid_ptr);
+
+    do {
+        i=http_get(&get_req, tmp_buff1, ret_buffer);
+        if (i < 0) 
+            sleep(30);
+        }
+    while( i );
+
+    http_deinit(&get_req);
+}
+

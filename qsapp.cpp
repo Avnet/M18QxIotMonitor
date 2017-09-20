@@ -146,7 +146,7 @@ int quickstart_app(int argc, const char * const * argv )
     int          start_data_service(void);
     int          done=0, k=0, i;
     int          dly, delay_time;
-    char         *buf, resp[1024], qsa_url[100];
+    char         resp[1024], qsa_url[100];
     char         color[10];
     char         **ptr, **lis2dw12_m2x(void);
     char         str_val[16];
@@ -180,17 +180,14 @@ int quickstart_app(int argc, const char * const * argv )
     wwan_io(!strcmp(om[7].value,"1")?1:0);
 
     printf("-Validating API Key and Device ID...\n");
-    buf = (char*)malloc(4048);
-    memset(buf,0x00,4048);
-    m2x_list_devices (api_key, buf);
-
-    char *strptr = strstr(buf,"\"name\":\"QuickStartApp\",");
+    m2x_device_info(api_key, device_id,  resp);
+    char *strptr = strstr(resp,"\"name\":\"QuickStartApp\",");
     if (strptr) {
         printf("device already present.\n");
-        strptr = strstr(buf,"\"key\":\"");
+        strptr = strstr(resp,"\"key\":\"");
         i=strcspn(strptr+8,"\"");
         strncpy(api_key,strptr+7,i+1);
-        strptr = strstr(buf,"\"id\":\"");
+        strptr = strstr(resp,"\"id\":\"");
         if (strptr) {
             i=strcspn(strptr+7,"\"");
             strncpy(device_id,strptr+6,i+1);
@@ -198,12 +195,10 @@ int quickstart_app(int argc, const char * const * argv )
         }
     else {
         printf("Create a new device.\n");
-        printf("api key is %s\n",api_key);
         m2x_create_device(api_key, device_id, resp);
         i = parse_maljson(resp, om, sizeof(om));
         strcpy(device_id, om[11].value);
         }
-    free(buf);
 
     printf("-Creating the data streams...\n");
     m2x_create_stream(device_id, api_key, "ADC");
