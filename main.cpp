@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
     strcpy(device_id,  DEFAULT_DEVICE_ID);
-    strcpy(api_key,  DEFAULT_API_KEY);
+    strcpy(api_key,  "");
     memset(demo_url,0x00,sizeof(demo_url));
 
     while((c=getopt(argc,argv,"?q:9mx:f:d:a:t:l:v:r:u:g:s")) != -1 )

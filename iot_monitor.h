@@ -43,7 +43,7 @@
 #define FACTORY_PROMPT	((char*)"WNC> ")
 
 #define DEFAULT_DEVICE_ID	(char*)"e83cdd8645ab1a7c0c480156efbf78f6"
-#define DEFAULT_API_KEY         (char*)"4d7e1da7f05c3fa4d5426419891a254d"
+//#define DEFAULT_API_KEY         (char*)"4d7e1da7f05c3fa4d5426419891a254d"
 #define DEFAULT_TEMP_API_STREAM (char*)"temp"
 #define DEFAULT_ADC_API_STREAM  (char*)"light_sens"
 

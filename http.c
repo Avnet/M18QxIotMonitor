@@ -236,7 +236,7 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
 
         ret=http_put(&put_req, url);
         if( put_req.rx_msglen >0) {
-            if( strcmp(put_req.rx_msg,"{\"status\":\"accepted\"}") )
+            if( strcmp(put_req.rx_msg,"{\"status\":\"accepted\"}") &&  dbg_flag & DBG_M2X ) 
                 printf("\nUNEXPECTED REPLY WAS: %s\n",put_req.rx_msg);
             }
 	http_deinit(&put_req);
@@ -285,7 +285,7 @@ int m2x_update_stream_value ( const char *device_id_ptr, const char *api_key_ptr
             }
         ret = http_post(&post_req, url);
         if( post_req.rx_msglen >0) {
-            if( strcmp(post_req.rx_msg,"{\"status\":\"accepted\"}") )
+            if( strcmp(post_req.rx_msg,"{\"status\":\"accepted\"}") &&  dbg_flag & DBG_M2X ) 
                 printf("\nUNEXPECTED REPLY WAS: %s\n",post_req.rx_msg);
             }
         http_deinit(&post_req);
@@ -322,18 +322,22 @@ int http_get(http_info_t *http_req, const char *url, char *response)
     if (http_req->curl == NULL) 
         return -2;
 
-    http_req->last_data = http_req->data_field;
-    http_req->total_len = http_field_len(http_req->data_field);
-
-    curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
-    curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
     curl_easy_setopt(http_req->curl, CURLOPT_HTTPGET, 1);
+    curl_easy_setopt(http_req->curl, CURLOPT_TIMEOUT, 300L);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
+    curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
     curl_easy_setopt(http_req->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
     curl_easy_setopt(http_req->curl, CURLOPT_FOLLOWLOCATION, 1); 
-
-    curl_easy_setopt(http_req->curl, CURLOPT_WRITEFUNCTION, write_callback_func);
-    curl_easy_setopt(http_req->curl, CURLOPT_WRITEDATA, response);
+    curl_easy_setopt(http_req->curl, CURLOPT_URL, url);
     rsize = 0;
+
+    if (http_req->header != NULL)
+        curl_easy_setopt(http_req->curl, CURLOPT_HTTPHEADER, http_req->header);
+
+    http_req->last_data = http_req->data_field;
+    http_req->total_len = http_field_len(http_req->data_field);
+    if (http_req->total_len >= 0)
+        curl_easy_setopt(http_req->curl, CURLOPT_POSTFIELDSIZE, http_req->total_len);
 
     res = curl_easy_perform(http_req->curl);
     return (res != CURLE_OK) ? -res : 0;
@@ -422,5 +426,105 @@ int m2x_update_color_value ( const char *device_id_ptr, const char *api_key_ptr,
 
     http_deinit(&put_req);
     return 0;
+}
+
+
+//
+//=========================================================================
+//
+// This function is called to create a device
+//
+int m2x_create_device ( const char *api_key_ptr, const char *device_name_ptr,  char * ret_buffer )
+{
+    int ret = 0;
+
+    if( doM2X ) {
+        http_info_t post_req;
+        char tmp_buff1[256], tmp_buff2[512];
+        char url[256];
+        time_t t = time(NULL);;
+        struct tm *tm;
+
+        memset(&post_req, 0, sizeof(http_info_t));
+        memset(tmp_buff1, 0, sizeof(tmp_buff1));
+        memset(tmp_buff2, 0, sizeof(tmp_buff2));
+        memset(url, 0, sizeof(url));
+
+        http_init(&post_req, 0);
+
+        sprintf(url, "http://api-m2x.att.com/v2/devices" );
+        sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+        sprintf(tmp_buff2, "{ \"name\": \"QuickStartApp\", \"serial\" : \"%s\", \"description\": \"QuickStart Application\", "
+                             "\"tags\": \"QSTA\", \"visibility\":\"public\" }",  device_name_ptr);
+
+        post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
+        post_req.header = http_add_field(post_req.header, tmp_buff1);
+        post_req.data_field = http_add_field(post_req.data_field, tmp_buff2);
+
+        ret = http_post(&post_req, url);
+        if( post_req.rx_msglen >0) 
+            strcpy(ret_buffer,post_req.rx_msg);
+        http_deinit(&post_req);
+        }
+    return ret;
+}
+
+
+#if 0
+int m2x_list_devices ( const char *api_key_ptr,   char * ret_buffer )
+{
+    int ret = 0;
+
+    if( doM2X ) {
+        http_info_t post_req;
+        char tmp_buff1[256];
+        char url[256];
+
+        memset(&post_req, 0, sizeof(http_info_t));
+        memset(tmp_buff1, 0, sizeof(tmp_buff1));
+        memset(url, 0, sizeof(url));
+
+        http_init(&post_req, 0);
+
+        sprintf(url, "http://api-m2x.att.com/v2/devices" );
+        post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
+
+        sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+        post_req.header = http_add_field(post_req.header, tmp_buff1);
+
+        ret = http_post(&post_req, url);
+        if( post_req.rx_msglen >0) 
+            strcpy(ret_buffer,post_req.rx_msg);
+        http_deinit(&post_req);
+        }
+    return ret;
+}
+#endif
+
+
+void m2x_list_devices ( const char *api_key_ptr, char *ret_buffer)
+{
+    http_info_t get_req;
+    char tmp_buff1[256];
+    char *url = "http://api-m2x.att.com/v2/devices";
+    int  i;
+
+    memset(&get_req, 0, sizeof(http_info_t));
+    http_init(&get_req, 1);
+
+    sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+    get_req.header = http_add_field(get_req.header, "Accept: */*");
+    get_req.header = http_add_field(get_req.header, "Content-Type: application/json");
+    get_req.header = http_add_field(get_req.header, tmp_buff1);
+
+
+    do {
+        i=http_get(&get_req, url, ret_buffer);
+        if (i < 0) 
+            sleep(30);
+        }
+    while( i );
+
+    http_deinit(&get_req);
 }
 

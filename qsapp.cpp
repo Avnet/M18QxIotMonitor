@@ -42,6 +42,60 @@ extern int button_press;
 extern GPIOPIN_IN gpio_input;
 extern gpio_handle_t user_key;
 
+static const char *colors[] = {
+    "BLUE",
+    "GREEN",
+    "BLUE",
+    "MAGENTA",
+    "TURQUOISE",
+    "RED",
+    "WHITE",
+    "YELLOW",
+    "CYAN"
+    };
+
+#define red_led		gpios[0].hndl
+#define green_led	gpios[1].hndl
+#define blue_led	gpios[2].hndl
+
+#define RED_LED        1  //0001 RED
+#define GREEN_LED      2  //0010 GREEN
+#define YELLOW_LED     3  //0011 RED + GREEN
+#define BLUE_LED       4  //0100
+#define MAGENTA_LED    5  //0101 BLUE + RED
+#define CYAN_LED       6  //0110 GREEN+ BLUE 
+#define WHITE_LED      7  //0111 GREEN+BLUE+RED
+
+void do_color( const char *color )
+{
+    int val=0;
+
+    if( !strcmp(color, "BLUE") )
+        val=BLUE_LED;
+    else if( !strcmp(color, "GREEN") )
+        val=GREEN_LED;
+    else if( !strcmp(color, "BLUE") )
+        val=BLUE_LED;
+    else if( !strcmp(color, "MAGENTA") )
+        val=MAGENTA_LED;
+    else if( !strcmp(color, "TURQUOISE") )
+        val=CYAN_LED;
+    else if( !strcmp(color, "RED") )
+        val=RED_LED;
+    else if( !strcmp(color, "WHITE") )
+        val=WHITE_LED;
+    else if( !strcmp(color, "YELLOW") )
+        val=YELLOW_LED;
+    else if( !strcmp(color, "CYAN") )
+        val=CYAN_LED;
+    else
+        val=0;
+
+    gpio_write( red_led, (val&RED_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
+    gpio_write( green_led, (val&GREEN_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
+    gpio_write( blue_led, (val&BLUE_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
+}
+
 int user_key_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     if (pin_name != GPIO_PIN_98) 
@@ -69,7 +123,7 @@ int quickstart_app(int argc, const char * const * argv )
     int          start_data_service(void);
     int          done=0, k=0, i;
     int          dly, delay_time;
-    char         cmd[1024], resp[1024], qsa_url[500];
+    char         *buf, resp[1024], qsa_url[100];
     char         color[10];
     char         **ptr, **lis2dw12_m2x(void);
     char         str_val[16];
@@ -89,40 +143,10 @@ int quickstart_app(int argc, const char * const * argv )
     else
         delay_time = argc;
 
-//
-// argv contains the M2X base URL to use for posting data. This
-// must be provided to fhe application to work.
-//
-    if( argv == NULL ) {
-        printf("ERROR: Must supply a M2X URL\n");
-        return 0;
-        }
-
-    mySystem.model=getModelID(om, sizeof(om));
     mySystem.iccid=getICCID(om, sizeof(om));
-
-    sprintf(qsa_url, "%s/%s/streams/", (char*)argv, mySystem.iccid.c_str());
+    strcpy(device_id,  mySystem.iccid.c_str());
 
     printf("\n\nQuick Start Application:\n");
-    printf("This application will post XYZ data, Temperature data, and Light ADC data to a standard M2X\n");
-    printf("account.  To access the data, browse to this URL:\n");
-    printf("\n");
-    printf("       %s/<stream_id>\n", qsa_url);
-    printf("\n");
-    printf("From this account there are three streams of data being updated:\n");
-    printf("    %sXYZ/value\n", qsa_url);
-    printf("    %sTEMP/value\n", qsa_url);
-    printf("    %sADC/value\n", qsa_url);
-    printf("\n");
-    printf("These streams are updated continuously user a Delay between data postings.\n");
-    printf("\n");
-    printf("Intially the LED will display RED while a connection is being established\n");
-    printf("and then will turn GREEN.  There after, the LED will cycle through colors\n");
-    printf("after each set of sensor data is sent to M2X.\n");
-    printf("\n");
-    printf("To exit the Quick Start Applicatioin, press the User Button on the Global \n");
-    printf("LTE IoT Starter Kit for > 3 seconds.\n\n");
-
     gpio_deinit( &gpio_input.hndl);
     button_press = 0;
     gpio_init( GPIO_PIN_98,  &user_key );  //SW3
@@ -132,7 +156,56 @@ int quickstart_app(int argc, const char * const * argv )
     get_wwan_status(om, sizeof(om));
     wwan_io(!strcmp(om[7].value,"1")?1:0);
 
+    printf("-Validating API Key and Device ID...\n");
+    buf = (char*)malloc(4048);
+    memset(buf,0x00,4048);
+    m2x_list_devices (api_key, buf);
+
+    char *strptr = strstr(buf,"\"name\":\"QuickStartApp\",");
+    if (strptr) {
+        printf("device already present.\n");
+        strptr = strstr(buf,"\"key\":\"");
+        i=strcspn(strptr+8,"\"");
+        strncpy(api_key,strptr+7,i+1);
+        strptr = strstr(buf,"\"id\":\"");
+        if (strptr) {
+            i=strcspn(strptr+7,"\"");
+            strncpy(device_id,strptr+6,i+1);
+            }
+        }
+    else {
+        printf("Create a new device.\n");
+        printf("api key is %s\n",api_key);
+        m2x_create_device(api_key, device_id, resp);
+        i = parse_maljson(resp, om, sizeof(om));
+        strcpy(device_id, om[11].value);
+        }
+    free(buf);
+
+    printf("-Creating the data streams...\n");
+    m2x_create_stream(device_id, api_key, "ADC");
+    m2x_create_stream(device_id, api_key, "TEMP");
+    m2x_create_stream(device_id, api_key, "XVALUE");
+    m2x_create_stream(device_id, api_key, "YVALUE");
+    m2x_create_stream(device_id, api_key, "ZVALUE");
+
+    sprintf(qsa_url, "https://api-m2x.att.com/devices/%s", device_id);
+    printf("Using API Key = %s, Device Key = %s\n",api_key, device_id);
+    printf("This application will post XYZ data, Temperature data, and Light ADC data to a standard M2X\n");
+    printf("account.  To access the data, browse to this URL:\n");
+    printf("\n");
+    printf("       %s\n", qsa_url);
+    printf("\n");
+    printf("These streams are updated continuously with user a user specfied Delay between postings.\n");
+    printf("LED colors will display a different colors after each set of sensor data is sent to M2X.\n");
+    printf("\n");
+    printf("To exit the Quick Start Applicatioin, press the User Button on the Global \n");
+    printf("LTE IoT Starter Kit for > 3 seconds.\n\n");
+    i=1;
     while( !done ) {
+        if( ++k > (sizeof(colors)/sizeof(char*)-1) ) 
+            k = 0;
+        do_color((char*)colors[k]);
         gettimeofday(&start, NULL);
         adc_init(&my_adc);
         adc_read(my_adc, &adc_voltage);
@@ -140,26 +213,25 @@ int quickstart_app(int argc, const char * const * argv )
         memset(str_val, 0, sizeof(str_val));
         sprintf(str_val, "%f", adc_voltage);
 
-        printf(">Send ADC value.\n");
-        m2x_create_stream(device_id, api_key, "ADC");
+        printf("%2d. Sending ADC value",i++);
+        fflush(stdout);
         m2x_update_stream_value(device_id, api_key, "ADC", str_val);		
     
-        printf(">Send TEMP value.\n");
+        printf(", TEMP value");
+        fflush(stdout);
         sprintf(str_val, "%f", lis2dw12_readTemp12());
-        m2x_create_stream(device_id, api_key, "TEMP");
         m2x_update_stream_value(device_id, api_key, "TEMP", str_val);		
 
         ptr=lis2dw12_m2x();
-        m2x_create_stream(device_id, api_key, "XVALUE");
-        m2x_create_stream(device_id, api_key, "YVALUE");
-        m2x_create_stream(device_id, api_key, "ZVALUE");
 
-        printf(">Send XYZ values.\n");
+        printf(", XYZ values...");
+        fflush(stdout);
         m2x_update_stream_value(device_id, api_key, "XVALUE", ptr[0]);		
         m2x_update_stream_value(device_id, api_key, "YVALUE", ptr[1]);		
         m2x_update_stream_value(device_id, api_key, "ZVALUE", ptr[2]);		
 
-        printf(">Stream Values all sent.\n");
+        printf("All Values sent.");
+        fflush(stdout);
         if( keypress_time.tv_sec > 3 ) 
             done = 1;
         else {
@@ -168,12 +240,14 @@ int quickstart_app(int argc, const char * const * argv )
 
             dly = ((delay_time*1000)-round(elapse))/1000;
             if( dly > 0) {
-                printf("==>Pause %d seconds for delay\n",dly);
+                printf(" (delay %d seconds)\n",dly);
                 sleep(dly);
                 }
+            else
+                printf("\n");
             }
         }
-    printf("Exiting Quick Start Application.\n");
+    printf("\n\nExiting Quick Start Application.\n");
 
     gpio_deinit( &user_key);
     binario_io_close();
