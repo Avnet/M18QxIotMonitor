@@ -61,10 +61,12 @@ char  **lis2dw12_m2x(void);
 #include "mal.hpp"
 
 struct timespec key_press, key_release, keypress_time;
-extern int button_press;
 extern GPIOPIN_IN gpio_input;
 extern gpio_handle_t user_key;
 
+static volatile int bpress;
+
+const char *current_color=NULL;
 static const char *colors[] = {
     "BLUE",
     "GREEN",
@@ -88,6 +90,8 @@ static const char *colors[] = {
 #define MAGENTA_LED    5  //0101 BLUE + RED
 #define CYAN_LED       6  //0110 GREEN+ BLUE 
 #define WHITE_LED      7  //0111 GREEN+BLUE+RED
+
+#define WAIT_FOR_BPRESS(x) {while( !x ); while( x );}
 
 void do_color( const char *color )
 {
@@ -119,21 +123,24 @@ void do_color( const char *color )
     gpio_write( blue_led, (val&BLUE_LED)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
 }
 
-int user_key_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
+int qsa_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 {
     if (pin_name != GPIO_PIN_98) 
         return 0;
 
-    if( button_press = !button_press ) 
+    if( bpress = !bpress ) {
+        do_color("WHITE");
         clock_gettime(CLOCK_MONOTONIC, &key_press);
+        }
     else{
+        do_color(current_color);
         clock_gettime(CLOCK_MONOTONIC, &key_release);
         if ((key_release.tv_nsec-key_press.tv_nsec)<0) 
-           keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec-1;
+            keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec-1;
         else 
             keypress_time.tv_sec = key_release.tv_sec-key_press.tv_sec;
         }
-	return 0;
+    return 0;
 }
 
 int quickstart_app(int argc, const char * const * argv )
@@ -166,15 +173,16 @@ int quickstart_app(int argc, const char * const * argv )
     else
         delay_time = argc;
 
+    do_color(current_color="RED");
     mySystem.iccid=getICCID(om, sizeof(om));
     strcpy(device_id,  mySystem.iccid.c_str());
 
     printf("\n\nQuick Start Application:\n");
     gpio_deinit( &gpio_input.hndl);
-    button_press = 0;
+    bpress = 0;
     gpio_init( GPIO_PIN_98,  &user_key );  //SW3
     gpio_dir(user_key, GPIO_DIR_INPUT);
-    gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, user_key_callback);
+    gpio_irq_request(user_key, GPIO_IRQ_TRIG_BOTH, qsa_irq_callback);
 
     get_wwan_status(om, sizeof(om));
     wwan_io(!strcmp(om[7].value,"1")?1:0);
@@ -195,6 +203,14 @@ int quickstart_app(int argc, const char * const * argv )
         }
     else {
         printf("Create a new device.\n");
+        if( !strlen(api_key) ) {
+            printf("ERROR: must provide an API key!\n");
+            printf("\n\nExiting Quick Start Application.\n");
+            gpio_deinit( &user_key);
+            binario_io_close();
+            binary_io_init();
+            return 0;
+            }
         m2x_create_device(api_key, device_id, resp);
         i = parse_maljson(resp, om, sizeof(om));
         strcpy(device_id, om[11].value);
@@ -221,9 +237,14 @@ int quickstart_app(int argc, const char * const * argv )
     printf("LTE IoT Starter Kit for > 3 seconds.\n\n");
     i=1;
     while( !done ) {
-        if( ++k > (sizeof(colors)/sizeof(char*)-1) ) 
-            k = 0;
-        do_color((char*)colors[k]);
+        do_color(current_color="GREEN");
+        WAIT_FOR_BPRESS(bpress);
+        if( keypress_time.tv_sec > 3 ) {
+            done = 1;
+            continue;
+            }
+        do_color(current_color="BLUE");
+    
         gettimeofday(&start, NULL);
         adc_init(&my_adc);
         adc_read(my_adc, &adc_voltage);
@@ -250,20 +271,16 @@ int quickstart_app(int argc, const char * const * argv )
 
         printf("All Values sent.");
         fflush(stdout);
-        if( keypress_time.tv_sec > 3 ) 
-            done = 1;
-        else {
-            gettimeofday(&end, NULL);
-            elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
 
-            dly = ((delay_time*1000)-round(elapse))/1000;
-            if( dly > 0) {
-                printf(" (delay %d seconds)\n",dly);
-                sleep(dly);
-                }
-            else
-                printf("\n");
+        gettimeofday(&end, NULL);
+        elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
+        dly = ((delay_time*1000)-round(elapse))/1000;
+        if( dly > 0) {
+            printf(" (delay %d seconds)\n",dly);
+            sleep(dly);
             }
+        else
+            printf("\n");
         }
     printf("\n\nExiting Quick Start Application.\n");
 

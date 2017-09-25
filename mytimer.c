@@ -211,3 +211,52 @@ void * _timer_thread(void * data)
     return NULL;
 }
 
+size_t create_ms_IoTtimer(unsigned int interval, time_handler handler, t_timer type, void * user_data)
+{
+    struct timer_node * new_node = NULL;
+    struct itimerspec new_value;
+    unsigned long intval = interval*1000000;  //convert ms to nsec
+ 
+    new_node = (struct timer_node *)malloc(sizeof(struct timer_node));
+ 
+    if(new_node == NULL) return 0;
+
+ 
+    new_node->callback  = handler;
+    new_node->user_data = user_data;
+    new_node->interval  = intval;;
+    new_node->type      = type;
+ 
+    new_node->fd = timerfd_create(CLOCK_REALTIME, 0);
+ 
+    if (new_node->fd == -1)
+    {
+        free(new_node);
+        return 0;
+    }
+
+    new_value.it_value.tv_sec  = 0;
+    new_value.it_value.tv_nsec = intval;;
+ 
+    if (type == TIMER_PERIODIC)
+    {
+        new_value.it_interval.tv_nsec = intval;;
+    }
+    else
+    {
+        new_value.it_interval.tv_nsec = 0;
+    }
+    
+    new_value.it_interval.tv_sec = 0;
+ 
+
+
+    timerfd_settime(new_node->fd, 0, &new_value, NULL);
+ 
+    /*Inserting the timer node into the list*/
+    new_node->next = g_head;
+    g_head = new_node;
+ 
+    return (size_t)new_node;
+}
+ 

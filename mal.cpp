@@ -40,6 +40,9 @@ extern "C" {
 #endif
 
 #include <hwlib/hwlib.h>
+
+int mal_busy;   //signal that the MAL is busy incase the WWAN routines try to use it
+
 #ifdef __cplusplus
 }
 #endif
@@ -70,15 +73,19 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
     socklen_t addr_length;
     struct sockaddr_un addr;
 
+    mal_busy = 1;
     strcpy(addr.sun_path, JSON_SOCKET_ADDR);    // max 108 bytes
     addr.sun_family = AF_UNIX;
     addr_length = SUN_LEN(&addr);
 
-    if ((client_socket=socket(AF_UNIX, SOCK_STREAM, 0)) < 0) 
+    if ((client_socket=socket(AF_UNIX, SOCK_STREAM, 0)) < 0)  {
+        mal_busy = 0;
         return -1;
+        }
 
     if (connect(client_socket, (struct sockaddr*) &addr, addr_length) < 0) {
         close(client_socket);
+        mal_busy = 0;
         return -2;
         }
 
@@ -86,6 +93,8 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
         printf("-MAL: send_mal_command sent (%d)= '%s'\n",strlen(json_cmd),json_cmd);
 
     if (write(client_socket, json_cmd, strlen(json_cmd)) < 0) {
+        close(client_socket);
+        mal_busy = 0;
         return -3;
         }
 
@@ -94,6 +103,8 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
         int bytes_read = read(client_socket, tresp, sizeof(tresp)-1);
         if (bytes_read <= 0 || bytes_read > len_json_resp) {
             printf("-MAL: socket read failed, bytes read = %d\n",bytes_read);
+            close(client_socket);
+            mal_busy = 0;
             return -4;
             }
         if( dbg_flag & DBG_MAL )
@@ -101,6 +112,7 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
         memcpy(json_resp, tresp, bytes_read);
         }
     close(client_socket);
+    mal_busy = 0;
     return 0;
 }
 
@@ -113,11 +125,13 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
 //      will return <0 if an error occurs, otherwise 0.
 
 int start_data_service(void) {
+
     int ret = 0;
     char jcmd1[] = "{\"action\":\"set_network_connection_mode\",\"args\":{\"mode\":0,\"ondemand_timeout\":2,\"manual_mode\":1}}";
     char jcmd2[] = "{\"action\":\"set_wwan_allow_data_roaming\",\"args\":{\"enable\":1}}";
     ret  = send_mal_command(jcmd1, NULL, 0, false);
     ret |= send_mal_command(jcmd2, NULL, 0, false);
+
     return ret;
 } 
 

@@ -151,6 +151,9 @@ extern int command_demo_mode(int, const char * const * argv);
 extern unsigned int ascii_to_epoch(char *epoch_ascii);
 extern void doNewLine(void);
 void *check_gps(void *);
+void monitor_wwan( void );
+void kill_monitor_wwan( void );
+
 #ifdef __cplusplus
 }
 #endif

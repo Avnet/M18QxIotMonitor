@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
         c=start_data_service();
         }
 
+    monitor_wwan();
     binary_io_init();
 
     c=lis2dw12_initialize();

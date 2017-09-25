@@ -55,6 +55,7 @@ extern int start_IoTtimers();
 extern void stop_IoTtimers();
 
 extern size_t create_IoTtimer(unsigned int interval, time_handler handler, t_timer type, void * user_data);
+extern size_t create_ms_IoTtimer(unsigned int interval, time_handler handler, t_timer type, void * user_data);
 extern void delete_IoTtimer(size_t timer_id);
 extern void change_IoTtimer(size_t timer_id, int newperiod);
  
