@@ -189,7 +189,7 @@ int quickstart_app(int argc, const char * const * argv )
 
     printf("-Validating API Key and Device ID...\n");
     m2x_device_info(api_key, device_id,  resp);
-    char *strptr = strstr(resp,"\"name\":\"QuickStartApp\",");
+    char *strptr = strstr(resp,"\"name\":\"Global Starter Kit\",");
     if (strptr) {
         printf("device already present.\n");
         strptr = strstr(resp,"\"key\":\"");

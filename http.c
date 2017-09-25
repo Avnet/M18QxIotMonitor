@@ -477,8 +477,8 @@ int m2x_create_device ( const char *api_key_ptr, const char *device_name_ptr,  c
 
         sprintf(url, "http://api-m2x.att.com/v2/devices" );
         sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
-        sprintf(tmp_buff2, "{ \"name\": \"QuickStartApp\", \"serial\" : \"%s\", \"description\": \"QuickStart Application\", "
-                             "\"tags\": \"QSTA\", \"visibility\":\"public\" }",  device_name_ptr);
+        sprintf(tmp_buff2, "{ \"name\": \"Global Starter Kit\", \"serial\" : \"%s\", \"description\": \"Demo Device\", "
+                             "\"tags\": \"QSTA\", \"visibility\":\"private\" }",  device_name_ptr);
 
         post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
         post_req.header = http_add_field(post_req.header, tmp_buff1);
@@ -491,38 +491,6 @@ int m2x_create_device ( const char *api_key_ptr, const char *device_name_ptr,  c
         }
     return ret;
 }
-
-
-#if 0
-int m2x_list_devices ( const char *api_key_ptr,   char * ret_buffer )
-{
-    int ret = 0;
-
-    if( doM2X ) {
-        http_info_t post_req;
-        char tmp_buff1[256];
-        char url[256];
-
-        memset(&post_req, 0, sizeof(http_info_t));
-        memset(tmp_buff1, 0, sizeof(tmp_buff1));
-        memset(url, 0, sizeof(url));
-
-        http_init(&post_req, 0);
-
-        sprintf(url, "http://api-m2x.att.com/v2/devices" );
-        post_req.header = http_add_field(post_req.header, "Content-Type: application/json");
-
-        sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
-        post_req.header = http_add_field(post_req.header, tmp_buff1);
-
-        ret = http_post(&post_req, url);
-        if( post_req.rx_msglen >0) 
-            strcpy(ret_buffer,post_req.rx_msg);
-        http_deinit(&post_req);
-        }
-    return ret;
-}
-#endif
 
 
 void m2x_list_devices ( const char *api_key_ptr, char *ret_buffer)
