@@ -102,7 +102,8 @@ int send_mal_command(char *json_cmd, char *json_resp, int len_json_resp, uint8_t
         char tresp[1024];                       
         int bytes_read = read(client_socket, tresp, sizeof(tresp)-1);
         if (bytes_read <= 0 || bytes_read > len_json_resp) {
-            printf("-MAL: socket read failed, bytes read = %d\n",bytes_read);
+            if( dbg_flag & DBG_MAL )
+                printf("-MAL: socket read failed, bytes read = %d\n",bytes_read);
             close(client_socket);
             mal_busy = 0;
             return -4;
@@ -146,7 +147,12 @@ char * get_ipAddr(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 
@@ -162,8 +168,35 @@ char * getFirmwareVersion(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
+
+
+//
+// Get Apps version
+//
+char * getAppsVersion(json_keyval *kv, int kvsize) {
+    int  i, k;
+    char rstr[100];
+    char jcmd[] = "{ \"action\" : \"get_system_config\" }";
+
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), true);
+    if( i<0 )
+        return (char*)"";
+    i = parse_maljson (rstr, kv, kvsize);
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[5].value;    
+}
+
 
 //
 // Get MAL Manager version
@@ -177,7 +210,12 @@ char * getMALManVer(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 
@@ -193,9 +231,14 @@ char * getModelID(json_keyval *kv, int kvsize) {
         }
     else {
         i = parse_maljson (rstr, kv, kvsize);
-//        printf("(received %d key/value pairs):\n", i);
-        return kv[3].value;    
+        if( i < 0 )  //parse failed
+            return NULL;
+        else if( atoi(kv[1].value) ) // we got an error value back
+            return kv[2].value;      // so return error message
+        else
+            return kv[3].value;    
         }
+    return NULL;  //we should never get here...
 }
 
 char * getIMEI(json_keyval *kv, int kvsize) {
@@ -205,7 +248,12 @@ char * getIMEI(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 char * getIMSI(json_keyval *kv, int kvsize) {
@@ -215,7 +263,12 @@ char * getIMSI(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 char * getICCID(json_keyval *kv, int kvsize) {
@@ -225,7 +278,12 @@ char * getICCID(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 char * getMSISDN(json_keyval *kv, int kvsize) {
@@ -235,7 +293,12 @@ char * getMSISDN(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 char *getOperatingMode(json_keyval *kv, int kvsize) {
@@ -245,7 +308,12 @@ char *getOperatingMode(json_keyval *kv, int kvsize) {
 
     send_mal_command(jcmd, rstr, sizeof(rstr), true);
     i = parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 //
@@ -306,8 +374,13 @@ char *getGPSconfig(json_keyval *kv, int kvsize) {
         printf("-MAL: in get_loc_config, send_mal_command failed - %d\n",i);
         return NULL;
         }
-    parse_maljson (rstr, kv, kvsize);
-    return kv[3].value;    
+    i=parse_maljson (rstr, kv, kvsize);
+    if( i < 0 )  //parse failed
+        return NULL;
+    else if( atoi(kv[1].value) ) // we got an error value back
+        return kv[2].value;      // so return error message
+    else
+        return kv[3].value;    
 }
 
 

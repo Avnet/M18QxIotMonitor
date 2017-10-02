@@ -75,6 +75,7 @@
 #ifdef __cplusplus
 typedef struct {
   std::string firmVer;
+  std::string AppsVer;
   std::string malwarVer;
   std::string ip;
   std::string model;

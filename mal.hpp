@@ -35,6 +35,7 @@ extern "C" {
 
 int parse_maljson(char *jstr, json_keyval rslts[], int s) ;
 char * getFirmwareVersion(json_keyval *kv, int kvsize);
+char * getAppsVersion(json_keyval *kv, int kvsize);
 char * getMALManVer(json_keyval *kv, int kvsize);
 char * get_ipAddr(json_keyval *kv, int kvsize);
 char * getModelID(json_keyval *kv, int kvsize);

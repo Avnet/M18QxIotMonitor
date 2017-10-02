@@ -578,10 +578,19 @@ int command_WNCInfo(int x, char const* const* p)
         }
 
     printf(" WNC Information\n");
-    mySystem.model=getModelID(om, sizeof(om));
+    fflush(stdout);
+    do
+        mySystem.model=getModelID(om, sizeof(om));
+    while( mySystem.model == "service is not ready");
+
     printf("              WNC Model: %s\n",mySystem.model.c_str());
     mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
     printf("       Firmware Version: %s\n",mySystem.firmVer.c_str());
+    mySystem.AppsVer=getAppsVersion(om, sizeof(om));
+    if( mySystem.AppsVer.length() )
+        printf("           Apps Version: %s\n",mySystem.AppsVer.c_str());
+else
+printf("**unable to get Apps Version**\n");
     mySystem.malwarVer=getMALManVer(om, sizeof(om));
     printf("            MAL Version: %s\n",mySystem.malwarVer.c_str());
     mySystem.opMode = getOperatingMode(om, 4);

@@ -193,7 +193,10 @@ int command_facttest(int argc, const char *const *argv)
     WAIT_FOR_BPRESS(user_press);
     printf("= PASS\n");
     printf("\n---- WNC Test 2 ------------------------------\n");
-    mySystem.model=getModelID(om, sizeof(om));
+    fflush(stdout);
+    do
+        mySystem.model=getModelID(om, sizeof(om));
+    while( mySystem.model == "service is not ready");
     mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
     mySystem.malwarVer=getMALManVer(om, sizeof(om));
     mySystem.ip=get_ipAddr(om, sizeof(om));
