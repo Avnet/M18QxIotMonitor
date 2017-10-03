@@ -561,7 +561,7 @@ void dump_keyvalues(json_keyval *pkv, int siz)
 int command_WNCInfo(int x, char const* const* p)
 {
     int i;
-    json_keyval om[4];
+    json_keyval om[20];
     const char *om_str[] = {
         "0-Online",
         "1-Low Power",
@@ -584,13 +584,10 @@ int command_WNCInfo(int x, char const* const* p)
     while( mySystem.model == "service is not ready");
 
     printf("              WNC Model: %s\n",mySystem.model.c_str());
+    mySystem.appsVer=getAppsVersion(om, sizeof(om));
+    printf("           Apps Version: %s\n",mySystem.appsVer.c_str());
     mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
     printf("       Firmware Version: %s\n",mySystem.firmVer.c_str());
-    mySystem.AppsVer=getAppsVersion(om, sizeof(om));
-    if( mySystem.AppsVer.length() )
-        printf("           Apps Version: %s\n",mySystem.AppsVer.c_str());
-else
-printf("**unable to get Apps Version**\n");
     mySystem.malwarVer=getMALManVer(om, sizeof(om));
     printf("            MAL Version: %s\n",mySystem.malwarVer.c_str());
     mySystem.opMode = getOperatingMode(om, 4);

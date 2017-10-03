@@ -181,8 +181,8 @@ char * getFirmwareVersion(json_keyval *kv, int kvsize) {
 // Get Apps version
 //
 char * getAppsVersion(json_keyval *kv, int kvsize) {
-    int  i, k;
-    char rstr[100];
+    int  i;
+    char rstr[400];
     char jcmd[] = "{ \"action\" : \"get_system_config\" }";
 
     i=send_mal_command(jcmd, rstr, sizeof(rstr), true);
@@ -190,11 +190,11 @@ char * getAppsVersion(json_keyval *kv, int kvsize) {
         return (char*)"";
     i = parse_maljson (rstr, kv, kvsize);
     if( i < 0 )  //parse failed
-        return NULL;
+        return (char*)"";
     else if( atoi(kv[1].value) ) // we got an error value back
         return kv[2].value;      // so return error message
     else
-        return kv[5].value;    
+        return kv[5].value;      // return version string
 }
 
 
