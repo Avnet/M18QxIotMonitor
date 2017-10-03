@@ -38,8 +38,8 @@
 
 #endif
 
-#define VER             1.00
-#define VER_DATE	__DATE__
+#define VER             1.01
+#define VER_DATE	__DATE__ " @ " __TIME__
 
 #define my_getc()	getc()
 #define my_puts(s)	puts(s)
