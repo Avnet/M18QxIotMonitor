@@ -198,6 +198,7 @@ int command_facttest(int argc, const char *const *argv)
         mySystem.model=getModelID(om, sizeof(om));
     while( mySystem.model == "service is not ready");
     mySystem.firmVer=getFirmwareVersion(om, sizeof(om));
+    mySystem.appsVer=getAppsVersion(om, sizeof(om));
     mySystem.malwarVer=getMALManVer(om, sizeof(om));
     mySystem.ip=get_ipAddr(om, sizeof(om));
     mySystem.iccid=getICCID(om, sizeof(om));
@@ -205,6 +206,7 @@ int command_facttest(int argc, const char *const *argv)
     mySystem.imsi=getIMSI(om, sizeof(om));
 
     printf("WNC: Module   #    = %s\n", mySystem.model.c_str());
+    printf("WNC: Apps Ver #    = %s\n", mySystem.appsVer.c_str());
     printf("WNC: Firmware #    = %s\n", mySystem.firmVer.c_str());
     printf("WNC: MAL Ver. #    = %s\n", mySystem.malwarVer.c_str());
     printf("WNC: IP Addr. #    = %s\n", mySystem.ip.c_str());
@@ -216,12 +218,6 @@ int command_facttest(int argc, const char *const *argv)
     printf("\n---- WNC Test 3 ------------------------------\n");
     printf("LTE: Signal RSSI   = %s\n", om[4].value);
     printf("LTE: Signal Level  = %s\n", om[6].value);
-
-// start the GPS interface.  It takes a while and uses the MAL interface
-// so don't start it until we are done accessing the MAL for other info
-
-    pthread_create( &thread1, NULL, check_gps, NULL);
-    gettimeofday(&gps_start, NULL);
 
     printf("\n---- ADC Test 4 ------------------------------\n");
     adc_handle_t my_adc=(adc_handle_t)NULL;
@@ -242,6 +238,12 @@ int command_facttest(int argc, const char *const *argv)
 
     printf("\n---- SPI Test 6 ------------------------------\n");
     printf("SPI: PMOD Result   = %s\n", max31855.loopbackTest()?"PASS":"FAIL");
+
+// start the GPS interface.  It takes a while and uses the MAL interface
+// so don't start it until we are done accessing the MAL for other info
+
+    pthread_create( &thread1, NULL, check_gps, NULL);
+    gettimeofday(&gps_start, NULL);
 
     printf("\n---- LED Test 7 ------------------------------\n");
     wwan_io(1);
