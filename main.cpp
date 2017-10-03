@@ -68,6 +68,7 @@ void usage (void)
 {
     printf(" The 'iot_monitor' program can be started with several options:\n");
     printf(" -m  : Disable sending data to M2X.  Used during execution of Demo application\n");
+    printf("       Disable GPS testing when used with factory test mode flag\n");
     printf(" -r #: Perform Factory Test Mode, ensure test runs for # seconds to observe LEDs\n");
     printf(" -d X: Set the Device id to 'X'\n");
     printf(" -a X: Set the API key to 'X'\n");
@@ -133,7 +134,6 @@ int main(int argc, char *argv[])
                printf("-GPS Time Out set to %d seconds\n",GPS_TO);
                break;
            case 'm': //send data to M2X
-               printf("-disable M2X transmissions\n");
                doM2X=false;
                break;
            case 'r': //factory test

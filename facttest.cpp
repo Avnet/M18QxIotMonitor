@@ -150,11 +150,15 @@ int command_facttest(int argc, const char *const *argv)
     extern GPIOPIN_IN gpio_input;
     MAX31855 max31855;
     json_keyval om[20];
-    int i;
+    int doGPS, i;
     float val;
     pthread_t thread1;
     struct timeval start, end;          //measure duration of flow calls...
     double elapse=0;
+
+    doGPS = doM2X;
+
+printf("%s GPS test.\n",doGPS?"DO":"SKIP");
 
 //
 // if ft_mopde == 0, we have been called from within the monitor program
@@ -242,8 +246,10 @@ int command_facttest(int argc, const char *const *argv)
 // start the GPS interface.  It takes a while and uses the MAL interface
 // so don't start it until we are done accessing the MAL for other info
 
-    pthread_create( &thread1, NULL, check_gps, NULL);
-    gettimeofday(&gps_start, NULL);
+    if( doGPS ) {
+        pthread_create( &thread1, NULL, check_gps, NULL);
+        gettimeofday(&gps_start, NULL);
+        }
 
     printf("\n---- LED Test 7 ------------------------------\n");
     wwan_io(1);
@@ -262,12 +268,15 @@ int command_facttest(int argc, const char *const *argv)
     do_gpio_blink( 0, 1 );
     gettimeofday(&start, NULL);
 
-    printf("\n---- GPS Test 8 -- May take up to %4d seconds-\n", GPS_TO);
-    pthread_join( thread1, NULL); //wait here for the GSP to finish
+    if( doGPS ) {
+        printf("\n---- GPS Test 8 -- May take up to %4d seconds-\n", GPS_TO);
+        pthread_join( thread1, NULL); //wait here for the GSP to finish
 
-//    check_gps(NULL);
-    printf("GPS: Latitude      = %8.5f\n",lat);
-    printf("GPS: Longitude     = %8.5f\n",lng);
+        printf("GPS: Latitude      = %8.5f\n",lat);
+        printf("GPS: Longitude     = %8.5f\n",lng);
+        }
+    else
+        printf("\n---- Skip GPS Test 8 ------------------------------\n");
 
     gettimeofday(&end, NULL);
     elapse += (((end.tv_sec - start.tv_sec)*1000) + (end.tv_usec/1000 - start.tv_usec/1000));
