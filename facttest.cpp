@@ -158,8 +158,6 @@ int command_facttest(int argc, const char *const *argv)
 
     doGPS = doM2X;
 
-printf("%s GPS test.\n",doGPS?"DO":"SKIP");
-
 //
 // if ft_mopde == 0, we have been called from within the monitor program
 // so switch context to factory test mdoe and restore it when leaving
