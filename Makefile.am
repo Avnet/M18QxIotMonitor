@@ -11,8 +11,7 @@ jim_demo_CPPFLAGS = -I. -Wall -static \
         -pthread \
 	-ljson-c \
         -lcurl \
-        -lhw \
-        -lvl53l0x
+        -lhw 
 
 jim_demo_CFLAGS = -I. -Wall -static \
         -g -O0 \
@@ -22,10 +21,9 @@ jim_demo_CFLAGS = -I. -Wall -static \
         -fno-short-enums \
 	-ljson-c \
         -lcurl \
-        -lhw  \
-        -lvl53l0x
+        -lhw  
 
-AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw -lVL53L1 -L./vl53l0x
+AM_LDFLAGS = -static -ljson-c -lcurl -lpthread -lhw 
 
 iot_monitor_SOURCES = main.cpp microrl.cpp HTU21D.cpp  \
                       commands.cpp mal.cpp maljson.cpp qsapp.cpp \
