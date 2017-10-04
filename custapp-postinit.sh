@@ -1,2 +1,2 @@
-start-stop-daemon -S -b -x /data/test/run_demo.sh
+start-stop-daemon -S -b -x /data/iot/run_demo.sh
 
