@@ -52,6 +52,7 @@
 static struct termios oldt, newt; //used to store and change the terminal attributes during program usage
 
 void do_emissions_test(void);  //this test is for performing CE/FCC emissions testing
+int emission_test = 0;
 
 //
 // This function is used to output data to the terminal as it is typed
@@ -104,7 +105,6 @@ int main(int argc, char *argv[])
     extern float  adc_threshold;
     extern int    GPS_TO;
     int           c, qsa=0;
-    int           emission_test = 0;
 
     void print_banner(void);
     int  process_command (int argc, const char * const * argv);
