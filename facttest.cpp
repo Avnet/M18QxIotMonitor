@@ -75,6 +75,7 @@ static int   idx = 0;
 struct timeval gps_start, gps_end;  //measure duration of gps call...
 
 int GPS_TO = 120;  //default is 120 seconds to get GPS fix
+extern int emission_test;
 
 void *check_gps(void *ptr)
 {
@@ -122,7 +123,8 @@ void *check_gps(void *ptr)
             usleep(250000);
             }
         }
-    disableGPS();
+    if( !emission_test )
+        disableGPS();
     printf("\r");
     return NULL;
 }
