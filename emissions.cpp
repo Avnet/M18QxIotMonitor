@@ -134,6 +134,7 @@ void do_emissions_test(void)
     printf("\n>>> Press the User Key to TERMINATE test. <<<\n");
     printf("\n>>> WWAN LED indicates presence of signal <<<\n");
 
+    check_gps(NULL);
     while( !user_press ) {
         get_wwan_status(om, sizeof(om));
         sscanf(om[4].value,"%d",&wwan_sig);
@@ -143,6 +144,7 @@ void do_emissions_test(void)
     }
     while( user_press );  //wait for user to release the user button
     printf("\n>>> Done... <<<\n");
+    disableGPS();
 
     wwan_io(0);
     ft_mode = 0;
