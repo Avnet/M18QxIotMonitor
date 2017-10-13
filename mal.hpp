@@ -52,6 +52,7 @@ char *getGPSconfig(json_keyval *kv, int kvsize);
 int getGPSlocation(json_keyval *kv, int kvsize);
 int enableGPS(void);
 int disableGPS(void);
+int resetGPS(void);
 int setGPSmode(int m);
 int setGPS_NMEAFilter( int f );
 
