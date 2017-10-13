@@ -424,6 +424,19 @@ int disableGPS(void) {
     return 0;
 }
 
+int resetGPS(void) {
+    int  i;
+    char rstr[300];
+    char jcmd[] = "{ \"action\": \"set_loc_relocate\" }";
+
+    i=send_mal_command(jcmd, rstr, sizeof(rstr), false);
+    if( i<0 ) {
+        printf("-MAL: resetGPS error (%d) returned %s\n",i,rstr);
+        return i;
+        }
+    return 0;
+}
+
 int setGPSmode(int m) {
     int i;
     char jcmd[100];
