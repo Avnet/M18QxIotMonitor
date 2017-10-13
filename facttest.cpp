@@ -86,6 +86,7 @@ void *check_gps(void *ptr)
     setGPSmode(4);
     getGPSconfig(om,sizeof(om));
     enableGPS();
+    resetGPS();
     m=done = 0;
     while( !done ) {
         k=getGPSlocation(om,sizeof(om));
