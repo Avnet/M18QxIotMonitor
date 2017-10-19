@@ -114,7 +114,10 @@ void *check_gps(void *ptr)
         elapse = (((gps_end.tv_sec - gps_start.tv_sec)*1000) + (gps_end.tv_usec/1000 - gps_start.tv_usec/1000));
         if( ((GPS_TO*1000)-round(elapse))/1000 < 0) {
             done = 1;
-            printf("\rGPS Acquisiton TO (%d seconds)\n",(int)round(elapse)/1000);
+            if( emission_test )
+                printf("Note: Satellite acquisition timeout is disabled to facilitate GPS testing\n");
+            else
+                printf("\rGPS Acquisiton TO (%d seconds)\n",(int)round(elapse)/1000);
             }
         else {
             printf("\r%c",(m==0)?0x7C:(m==1)?0x2f:(m==2)?0x2d:0x5c);
