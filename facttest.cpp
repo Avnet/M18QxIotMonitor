@@ -71,6 +71,7 @@ void wwan_io(int);
 float lat;
 float lng;
 int   alt;
+int   rst_m2_detected = 0;
 static int   idx = 0;
 struct timeval gps_start, gps_end;  //measure duration of gps call...
 
@@ -151,6 +152,18 @@ int gpio_ftirq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
     return 0;
 }
 
+//
+// This callback is only used for the extended I/O test
+//
+int gpio_rst_m2_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
+{
+    int *key;
+    if (pin_name == GPIO_PIN_95) 
+        rst_m2_detected = 1;
+    return 0;
+}
+
+
 int command_facttest(int argc, const char *const *argv)
 {
     extern GPIOPIN_IN gpio_input;
@@ -161,6 +174,11 @@ int command_facttest(int argc, const char *const *argv)
     pthread_t thread1;
     struct timeval start, end;          //measure duration of flow calls...
     double elapse=0;
+
+    gpio_level_t r1=(gpio_level_t)0, r2=(gpio_level_t)0;
+    gpio_handle_t rst_m1_in=0, pwm_m1_in=0, pwm_m2_in=0;
+    gpio_handle_t cs_m1_out=0, int_m2_out=0, int_m1_out=0, rst_m2_out=0;
+
 
     doGPS = doM2X;
 
@@ -291,8 +309,98 @@ int command_facttest(int argc, const char *const *argv)
         fflush(stdout);
         sleep(i);
         }
-    printf("\n\n");
 
+    if( extendedIO ) {
+        binario_io_close();
+
+        printf("\n---- XTEND IO Test 9 ------------------------------\n");
+
+        //
+        // Extended Binary I/O configuration is as follows:
+        // GPIO02 / rst_m1_in - Input
+        // GPIO03 / cs_m1_out - Output
+        // GPIO04 / pwm_m1_in - Input
+        // GPIO94 / int_m1_out- Output
+        //
+        // GPIO95 / rst_m2_out- Output
+        // GPIO96 / pwm_m2_in - Input
+        // GPIO07 / int_m2_out- output 
+
+        if( (i=gpio_init(GPIO_PIN_3, &cs_m1_out )) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_3. (%d)\n",i);
+        if( (i=gpio_init(GPIO_PIN_7, &int_m2_out)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_7. (%d)\n",i);
+        if( (i=gpio_init(GPIO_PIN_95, &rst_m2_out)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_95. (%d)\n",i);
+        if( (i=gpio_init(GPIO_PIN_94, &int_m1_out)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_94. (%d)\n",i);
+
+        if( (i=gpio_dir(cs_m1_out, GPIO_DIR_OUTPUT)) != 0 )
+            printf("ERROR: can't set direction on cs_m1_out. (%d)\n",i);
+        if( (i=gpio_dir(int_m2_out, GPIO_DIR_OUTPUT)) != 0 )
+            printf("ERROR: can't set direction on int_m2_out. (%d)\n",i);
+        if( (i=gpio_dir(int_m1_out, GPIO_DIR_OUTPUT)) != 0 )
+            printf("ERROR: can't set direction on int_m1_out. (%d)\n",i);
+        if( (i=gpio_dir(rst_m2_out, GPIO_DIR_INPUT)) != 0 )
+            printf("ERROR: can't set direction on pwm_m2_in. (%d)\n",i);
+
+        if( (i=gpio_init(GPIO_PIN_2, &rst_m1_in)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_2. (%d)\n",i);
+        if( (i=gpio_init(GPIO_PIN_4, &pwm_m1_in)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_4. (%d)\n",i);
+        if( (i=gpio_init(GPIO_PIN_96, &pwm_m2_in)) != 0 )
+            printf("ERROR: unable to initialize GPIO_PIN_96. (%d)\n",i);
+
+        if( (i=gpio_dir(rst_m1_in, GPIO_DIR_INPUT)) != 0 )
+            printf("ERROR: can't set direction on rst_m1_in. (%d)\n",i);
+        if( (i=gpio_dir(pwm_m1_in, GPIO_DIR_INPUT)) != 0 )
+            printf("ERROR: can't set direction on pwm_m1_in. (%d)\n",i);
+        if( (i=gpio_dir(pwm_m2_in, GPIO_DIR_INPUT)) != 0 )
+            printf("ERROR: can't set direction on pwm_m2_in. (%d)\n",i);
+
+        if( (i=gpio_irq_request(rst_m2_out, GPIO_IRQ_TRIG_BOTH, gpio_rst_m2_callback)) != 0)
+            printf("ERROR: can't set user key as interrupt input. (%d)\n",i);
+        rst_m2_detected=0;
+        max31855.loopbackTest();  //SPIM_EN_1 is set when an SPI transaction occurs so do the loopback test
+
+        // check Socket #1
+        // cs_m1_out -> rst_m1_in 
+        // int_m1_out -> pwm_m1_in
+
+        // check Socket #2
+        // rst_m2_out -> cs_m2_in (no connect)
+        // int_m2_out -> pwm_m2_in
+
+        printf("XIO: cs_m2->rst_m2 = %s\n", (rst_m2_detected)?"OK":"FAIL");
+       
+        gpio_write(cs_m1_out, GPIO_LEVEL_HIGH );
+        gpio_read(rst_m1_in,  &r1);
+        gpio_write(cs_m1_out, GPIO_LEVEL_LOW );
+        gpio_read(rst_m1_in,  &r2);
+        printf("XIO: cs_m1->rst_m1 = %s\n", (r1^r2)?"OK":"FAIL");
+
+        gpio_write(int_m1_out, GPIO_LEVEL_HIGH );
+        gpio_read(pwm_m1_in,  &r1);
+        gpio_write(int_m1_out, GPIO_LEVEL_LOW );
+        gpio_read(pwm_m1_in,  &r2);
+        printf("XIO: int_m1->pwm_m1= %s\n", (r1^r2)?"OK":"FAIL");
+
+        gpio_write(int_m2_out, GPIO_LEVEL_HIGH );
+        gpio_read(pwm_m2_in,  &r1);
+        gpio_write(int_m2_out, GPIO_LEVEL_LOW );
+        gpio_read(pwm_m2_in,  &r2);
+        printf("XIO: int_m2->pwm_m2= %s\n", (r1^r2)?"OK":"FAIL");
+
+        gpio_deinit(&cs_m1_out );
+        gpio_deinit(&int_m2_out);
+        gpio_deinit(&rst_m2_out);
+        gpio_deinit(&int_m1_out);
+        gpio_deinit(&rst_m1_in);
+        gpio_deinit(&pwm_m1_in);
+        gpio_deinit(&pwm_m2_in);
+        }
+
+    printf("\n\n");
     do_gpio_blink( 0, 0 );
     gpio_deinit( &user_key);
     binario_io_close();

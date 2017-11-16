@@ -109,7 +109,7 @@ extern int doM2X;
 extern int headless_timed;
 extern unsigned int dbg_flag;
 extern int ft_time;
-extern int ft_mode;
+extern int ft_mode, extendedIO;
 extern unsigned int dbg_flag;
 extern void *htsdev;
 #endif
