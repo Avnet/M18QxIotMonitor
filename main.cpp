@@ -71,6 +71,7 @@ void usage (void)
     printf(" -m  : Disable sending data to M2X.  Used during execution of Demo application\n");
     printf("       Disable GPS testing when used with factory test mode flag\n");
     printf(" -r #: Perform Factory Test Mode, ensure test runs for # seconds to observe LEDs\n");
+    printf(" -e  : run the extended I/O test when expansion board is attached\n");
     printf(" -d X: Set the Device id to 'X'\n");
     printf(" -a X: Set the API key to 'X'\n");
     printf(" -l X: Set the ADC Stream name\n");
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
     strcpy(api_key,  "");
     memset(demo_url,0x00,sizeof(demo_url));
 
-    while((c=getopt(argc,argv,"?q:9mx:f:d:a:t:l:v:r:u:g:s")) != -1 )
+    while((c=getopt(argc,argv,"?q:9mex:f:d:a:t:l:v:r:u:g:s")) != -1 )
         switch(c) {
            case '9': //run in FCC mode
                emission_test = 1;
@@ -135,6 +136,9 @@ int main(int argc, char *argv[])
                break;
            case 'm': //send data to M2X
                doM2X=false;
+               break;
+           case 'e': //extended factory test
+               extendedIO=1;
                break;
            case 'r': //factory test
                ft_mode=1;

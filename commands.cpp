@@ -95,7 +95,7 @@ char *temp_stream_name = (char*)DEFAULT_TEMP_API_STREAM;
 sysinfo mySystem;
 int headless=0;
 int headless_timed=0;
-int ft_mode=0;
+int ft_mode=0, extendedIO=0;
 int ft_time=0;
 int doM2X=true;
 unsigned int dbg_flag = 0;
