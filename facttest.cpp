@@ -375,7 +375,7 @@ int command_facttest(int argc, const char *const *argv)
         gpio_read(rst_m1_in,  &r1);
         gpio_write(cs_m1_out, GPIO_LEVEL_LOW );
         gpio_read(rst_m1_in,  &r2);
-        printf("XIO: cs_m1->rst_m1 = %s\n", (r1^r2)?"OK":"FAIL");
+        printf("XIO: cs_m1 ->rst_m1= %s\n", (r1^r2)?"OK":"FAIL");
 
         gpio_write(int_m1_out, GPIO_LEVEL_HIGH );
         gpio_read(pwm_m1_in,  &r1);
@@ -383,7 +383,7 @@ int command_facttest(int argc, const char *const *argv)
         gpio_read(pwm_m1_in,  &r2);
         printf("XIO: int_m1->pwm_m1= %s\n", (r1^r2)?"OK":"FAIL");
 
-        printf("XIO: cs_m2->rst_m2 = %s\n", (rst_m2_detected)?"OK":"FAIL");
+        printf("XIO: cs_m2 ->rst_m2= %s (%d)\n", (rst_m2_detected)?"OK":"FAIL",rst_m2_detected);
        
         gpio_write(int_m2_out, GPIO_LEVEL_HIGH );
         gpio_read(pwm_m2_in,  &r1);
@@ -391,9 +391,10 @@ int command_facttest(int argc, const char *const *argv)
         gpio_read(pwm_m2_in,  &r2);
         printf("XIO: int_m2->pwm_m2= %s\n", (r1^r2)?"OK":"FAIL");
 
+        gpio_irq_free(rst_m2_out);
+        gpio_deinit(&rst_m2_out);
         gpio_deinit(&cs_m1_out );
         gpio_deinit(&int_m2_out);
-        gpio_deinit(&rst_m2_out);
         gpio_deinit(&int_m1_out);
         gpio_deinit(&rst_m1_in);
         gpio_deinit(&pwm_m1_in);
@@ -408,6 +409,5 @@ int command_facttest(int argc, const char *const *argv)
         ft_mode = 0;  //restore factory test mode to what it was origionally
     binary_io_init();
 }
-
 
 
