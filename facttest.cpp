@@ -383,7 +383,7 @@ int command_facttest(int argc, const char *const *argv)
         gpio_read(pwm_m1_in,  &r2);
         printf("XIO: int_m1->pwm_m1= %s\n", (r1^r2)?"OK":"FAIL");
 
-        printf("XIO: cs_m2 ->rst_m2= %s (%d)\n", (rst_m2_detected)?"OK":"FAIL",rst_m2_detected);
+        printf("XIO: cs_m2 ->rst_m2= %s\n", (rst_m2_detected)?"OK":"FAIL");
        
         gpio_write(int_m2_out, GPIO_LEVEL_HIGH );
         gpio_read(pwm_m2_in,  &r1);
