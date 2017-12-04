@@ -38,7 +38,8 @@
 
 #endif
 
-#define VER             1.01
+#define VER             1.02
+#define COMMIT_NBR      "cfbe78"
 #define VER_DATE	__DATE__ " @ " __TIME__
 
 #define my_getc()	getc()
@@ -142,7 +143,7 @@ extern int command_adc(int argc, const char * const * argv );
 extern int command_headless(int argc, const char * const * argv );
 extern int command_facttest(int argc, const char * const * argv );
 extern int command_dbg(int argc, const char * const * argv );
-extern int command_VL53L0X(int argc, const char * const * argv );
+//extern int command_VL53L0X(int argc, const char * const * argv );
 
 #ifdef __cplusplus
 extern "C" {

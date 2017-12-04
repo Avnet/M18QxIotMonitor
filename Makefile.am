@@ -30,7 +30,7 @@ iot_monitor_SOURCES = main.cpp microrl.cpp HTU21D.cpp  \
                       MAX31855.cpp facttest.cpp MS5637.cpp \
                       binio.c jsmn.c  HTS221.cpp mytimer.c \
                       http.c lis2dw12.c m2x.c demo.c wwan.c \
-                      LightRanger.cpp emissions.cpp 
+                      emissions.cpp 
 
 bin_PROGRAMS = iot_monitor 
 
