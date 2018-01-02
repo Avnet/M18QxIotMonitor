@@ -38,8 +38,7 @@
 
 #endif
 
-#define VER             1.02
-#define COMMIT_NBR      "cfbe78"
+#define VER             1.03
 #define VER_DATE	__DATE__ " @ " __TIME__
 
 #define my_getc()	getc()

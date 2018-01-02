@@ -81,6 +81,10 @@ volatile int button_press=0;
 volatile int relay2_val=0;
 struct timespec key_press, key_release, keypress_time;
 
+adc_handle_t my_adc=(adc_handle_t)NULL;
+float        adc_voltage;
+int          valid_adc_value = 0;
+
 static char gps_cmd[512];
 
 LED_VAL led_demo[] = {
@@ -192,12 +196,9 @@ void sendGPS(void)
 void gpio_adc_timer_task(size_t timer_id, void * user_data)
 {
     extern float adc_threshold;
-    float adc_voltage;
-    adc_handle_t my_adc=(adc_handle_t)NULL;
 
-    adc_init(&my_adc);
     adc_read(my_adc, &adc_voltage);
-    adc_deinit(&my_adc);
+    valid_adc_value = 1;
 
     if( adc_voltage > adc_threshold ){
         gpio_write( adctmr_hndl, GPIO_LEVEL_HIGH );
@@ -262,6 +263,8 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_write( adctmr_hndl, GPIO_LEVEL_LOW );
 
     start_IoTtimers();
+    adc_init(&my_adc);
+    valid_adc_value = 0;
     create_IoTtimer(1, gpio_adc_timer_task, TIMER_PERIODIC, NULL);
 
 
@@ -327,15 +330,13 @@ int command_demo_mode(int argc, const char * const * argv )
             hts221_temp = hts221_readTemperature();
             hts221_humid= hts221_readHumidity();
             }
-        float adc_voltage, x, y, z;
+        float x, y, z;
         int   lis2dw12_readTemp8(void);
         float lis2dw12_readTemp12(void);
         char  **ptr, **lis2dw12_m2x(void);
-        adc_handle_t my_adc=(adc_handle_t)NULL;
 
-        adc_init(&my_adc);
-        adc_read(my_adc, &adc_voltage);
-        adc_deinit(&my_adc);
+        while( !valid_adc_value )
+            /* wait for valid reading */;
 
         float bit12_temp =  lis2dw12_readTemp12();
         int bit8_temp    =  lis2dw12_readTemp8();
@@ -397,6 +398,7 @@ int command_demo_mode(int argc, const char * const * argv )
     gpio_deinit( &adctmr_hndl);
 
     stop_IoTtimers();
+    adc_deinit(&my_adc);
     if (dbg_flag & DBG_DEMO)
         printf("Restarting the Monitor...\n");
     binary_io_init();

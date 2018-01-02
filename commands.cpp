@@ -275,7 +275,7 @@ void print_banner(void) {
   printf("                                    Reach Further\n");
   printf("\n");
   printf(" AVNET - AT&T Global Module IoT Monitor\n");
-  printf(" Version %5.2f // %s (commit #%s)\n",VER,VER_DATE, COMMIT_NBR);
+  printf(" Version %5.2f // %s \n",VER,VER_DATE);
   printf(" Hardware Supported: WNC M18Qx Cellular Data Module\n");
   printf("----------------------------------------------------------------------------\n");
   
