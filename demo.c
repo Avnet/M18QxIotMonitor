@@ -83,7 +83,7 @@ struct timespec key_press, key_release, keypress_time;
 
 adc_handle_t my_adc=(adc_handle_t)NULL;
 float        adc_voltage;
-int          valid_adc_value = 0;
+volatile int valid_adc_value = 0;
 
 static char gps_cmd[512];
 
@@ -195,17 +195,20 @@ void sendGPS(void)
 
 void gpio_adc_timer_task(size_t timer_id, void * user_data)
 {
+    int i;
+    float adcv;
     extern float adc_threshold;
 
-    adc_read(my_adc, &adc_voltage);
-    valid_adc_value = 1;
+    valid_adc_value = adc_read(my_adc, &adcv); //read the ADC value, if read successful
+                                               //i = 0,otherwise it is 1
+    if( valid_adc_value )
+        return;
 
-    if( adc_voltage > adc_threshold ){
-        gpio_write( adctmr_hndl, GPIO_LEVEL_HIGH );
-        }
-    else{
-        gpio_write( adctmr_hndl, GPIO_LEVEL_LOW );
-        }
+    adc_voltage = adcv;
+    if( dbg_flag & DBG_DEMO )
+        printf("-DEMO: ADC Voltage Read: %f\n",adc_voltage);
+
+    gpio_write( adctmr_hndl, (adc_voltage>adc_threshold)?GPIO_LEVEL_HIGH:GPIO_LEVEL_LOW );
 }
 
 
@@ -264,7 +267,6 @@ int command_demo_mode(int argc, const char * const * argv )
 
     start_IoTtimers();
     adc_init(&my_adc);
-    valid_adc_value = 0;
     create_IoTtimer(1, gpio_adc_timer_task, TIMER_PERIODIC, NULL);
 
 
@@ -314,10 +316,11 @@ int command_demo_mode(int argc, const char * const * argv )
         if (!headless_timed)
             while( !button_press ); /* wait for a button press */
 
-        if (dbg_flag & DBG_DEMO)
-            printf("-DEMO: HTS221 data to M2X\n");
-        if (doM2X)
+        if (doM2X) {
+            if (dbg_flag & DBG_DEMO)
+                printf("-DEMO: HTS221 data to M2X\n");
             do_hts2m2x();
+            }
 
 //----
         {
@@ -335,9 +338,6 @@ int command_demo_mode(int argc, const char * const * argv )
         float lis2dw12_readTemp12(void);
         char  **ptr, **lis2dw12_m2x(void);
 
-        while( !valid_adc_value )
-            /* wait for valid reading */;
-
         float bit12_temp =  lis2dw12_readTemp12();
         int bit8_temp    =  lis2dw12_readTemp8();
 
@@ -350,15 +350,15 @@ int command_demo_mode(int argc, const char * const * argv )
             printf("-DEMO: to PubNub, X=%6.2f Y=%6.2f Z=%6.2f, Signal Strength=%s\n",x,y,z,sstrength);
             printf("-DEMO: to PubNub, A2D=%6.4f HTS221_temp= %4.2f THS221_humid= %4.2f\n",adc_voltage, hts221_temp, hts221_humid);
             }
-
+    
         memset(cmd, 0x00, sizeof(cmd));
         sprintf(cmd,"&LIS2DW12_x=%06.2f&LIS2DW12_y=%06.2f&LIS2DW12_z=%06.2f"
                     "&SSIG=%s&HTS221_TEMP=%4.2f&HTS221_HUMID=%3.1f&ADC=%4.3f%s",
                      x, y, z, sstrength, hts221_temp, hts221_humid, adc_voltage, gps_cmd);
-
+    
         if (dbg_flag & DBG_DEMO)
             printf("-DEMO: data command to PUBNUB (%s)\n",cmd);
-
+    
         flow_get ( url, "pubnub", FLOW_DEVICE_NAME, FLOW_SERVER, cmd, resp, sizeof(resp));
         gettimeofday(&end, NULL);
         elapse = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec/1000 - start.tv_usec/1000);
