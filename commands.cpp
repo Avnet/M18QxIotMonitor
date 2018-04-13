@@ -508,7 +508,15 @@ int command_WWANStatus(int, char const* const*)
 {
     json_keyval om[20];
     int k;
-    const char *radio_mode[] = {"No service", "3G", "4G" };
+    const char *radio_mode[] = {
+        "No service", // 0
+        "No service", // 1
+        "2G",         // 2
+        "3G",         // 3
+        "4G",         // 4
+        "No service", // 5
+        "4G+"         // 6
+        };
     const char *radio_state[]= { 
         "No Registered", "Registered with network", 
         "searching", "registration denied", "unknown" };
