@@ -148,6 +148,13 @@ int quickstart_app(int argc, const char * const * argv )
     void  wwan_io(int);
     void  do_lis2dw2m2x(void);
     float lis2dw12_readTemp12(void);
+    pthread_t thread1;
+    float last_lat=0.0, last_lng=0.0;
+    int   last_alt=0;
+    extern struct timeval gps_start, gps_end;  //measure duration of gps call...
+    extern float lat;
+    extern float lng;
+    extern int   alt, GPS_TO;
 
     adc_handle_t my_adc=(adc_handle_t)NULL;
     int          start_data_service(void);
@@ -157,6 +164,9 @@ int quickstart_app(int argc, const char * const * argv )
     char         color[10];
     char         **ptr, **lis2dw12_m2x(void);
     char         str_val[16];
+    char         str_lat[16];
+    char         str_long[16];
+    char         str_elev[16];
     double       elapse=0;
     float        adc_voltage;
 
@@ -175,7 +185,10 @@ int quickstart_app(int argc, const char * const * argv )
 
     do_color(current_color="RED");
     mySystem.iccid=getICCID(om, sizeof(om));
-    strcpy(device_id,  mySystem.iccid.c_str());
+    if( !strlen(device_id) ) {
+        printf("Using ICCID for device id\n");
+        strcpy(device_id,  mySystem.iccid.c_str());
+        }
 
     printf("\n\nQuick Start Application:\n");
     gpio_deinit( &gpio_input.hndl);
@@ -187,8 +200,9 @@ int quickstart_app(int argc, const char * const * argv )
     get_wwan_status(om, sizeof(om));
     wwan_io(!strcmp(om[7].value,"1")?1:0);
 
-    printf("-Validating API Key and Device ID...\n");
+    printf("-Validating API Key (%s) and Device ID (%s)...\n",api_key,device_id);
     m2x_device_info(api_key, device_id,  resp);
+
     char *strptr = strstr(resp,"\"name\":\"Global Starter Kit\",");
     if (strptr) {
         printf("device already present.\n");
@@ -214,18 +228,17 @@ int quickstart_app(int argc, const char * const * argv )
         m2x_create_device(api_key, device_id, resp);
         i = parse_maljson(resp, om, sizeof(om));
         strcpy(device_id, om[11].value);
+        printf("-Creating the data streams...\n");
+        m2x_create_stream(device_id, api_key, "ADC");
+        m2x_create_stream(device_id, api_key, "TEMP");
+        m2x_create_stream(device_id, api_key, "XVALUE");
+        m2x_create_stream(device_id, api_key, "YVALUE");
+        m2x_create_stream(device_id, api_key, "ZVALUE");
         }
-
-    printf("-Creating the data streams...\n");
-    m2x_create_stream(device_id, api_key, "ADC");
-    m2x_create_stream(device_id, api_key, "TEMP");
-    m2x_create_stream(device_id, api_key, "XVALUE");
-    m2x_create_stream(device_id, api_key, "YVALUE");
-    m2x_create_stream(device_id, api_key, "ZVALUE");
 
     sprintf(qsa_url, "https://api-m2x.att.com/devices/%s", device_id);
     printf("Using API Key = %s, Device Key = %s\n",api_key, device_id);
-    printf("This application will post XYZ data, Temperature data, and Light ADC data to a standard M2X\n");
+    printf("This application will post XYZ data, Temperature data, Light ADC data, and GPS location to a standard M2X\n");
     printf("account.  To access the data, browse to this URL:\n");
     printf("\n");
     printf("       %s\n", qsa_url);
@@ -268,6 +281,24 @@ int quickstart_app(int argc, const char * const * argv )
         m2x_update_stream_value(device_id, api_key, "XVALUE", ptr[0]);		
         m2x_update_stream_value(device_id, api_key, "YVALUE", ptr[1]);		
         m2x_update_stream_value(device_id, api_key, "ZVALUE", ptr[2]);		
+
+        printf(" now get GPS Coordinates (this may take up to %d sec).\n",GPS_TO);
+        gettimeofday(&gps_start, NULL);
+        pthread_create( &thread1, NULL, check_gps, NULL);
+        pthread_join( thread1, NULL); //wait here for the GSP to finish
+
+        if( lat == 0.0 && lng == 0.0 && alt == 0 ) {
+            printf(" ** Didn't get GPS info, using last know values.\n");
+            lat = last_lat;
+            lng = last_lng;
+            alt = last_alt;
+            }
+
+        sprintf(str_lat, "%f", lat);
+        sprintf(str_long, "%f", lng);
+        sprintf(str_elev, "%f", alt);
+
+        m2x_update_location_value ( device_id, api_key, device_id, str_lat, str_long, str_elev);
 
         printf("All Values sent.");
         fflush(stdout);

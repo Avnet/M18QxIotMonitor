@@ -267,6 +267,7 @@ int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, cons
     return ret;
 }
 
+
 //
 // This function is called to update a stream value.
 //
@@ -451,6 +452,46 @@ int m2x_update_color_value ( const char *device_id_ptr, const char *api_key_ptr,
     return 0;
 }
 
+//
+// This function is called to update a location value.
+//
+int m2x_update_location_value ( const char *device_id_ptr, const char *api_key_ptr, 
+    const char *name, const char *lat, const char *lng, const char *elev)
+{
+    http_info_t put_req;
+    char tmp_buff1[256], tmp_buff2[256];
+    char url[256];
+
+    memset(&put_req, 0, sizeof(http_info_t));
+    memset(tmp_buff1, 0, sizeof(tmp_buff1));
+    memset(tmp_buff2, 0, sizeof(tmp_buff2));
+    memset(url, 0, sizeof(url));
+
+    http_init(&put_req, 0);
+
+    sprintf(url, "http://api-m2x.att.com/v2/devices/%s/location/", device_id_ptr);
+    sprintf(tmp_buff1, "X-M2X-KEY: %s", api_key_ptr);
+
+    put_req.header = http_add_field(put_req.header, "Content-Type: application/json");
+    put_req.header = http_add_field(put_req.header, tmp_buff1);
+
+    sprintf(tmp_buff2, "{ \"name\": \"%s\", \"latitude\": \"%s\", \"longitude\": \"%s\", \"elevation\": \"%s\" }", 
+            name,lat,lng,elev);
+    put_req.data_field = http_add_field(put_req.data_field, tmp_buff2);
+
+    if( dbg_flag & DBG_M2X ) {
+        printf("\n\n\nupdate_location_value\n", url);
+        printf("sending to URL: %s\n", url);
+        printf("Content-Type: application/json");
+        printf("%s\n", tmp_buff1);
+        printf("%s\n", tmp_buff2);
+        }
+    if (http_put(&put_req, url) < 0)
+        return -1;
+    http_deinit(&put_req);
+    return 0;
+}
+
 
 //
 //=========================================================================
@@ -535,7 +576,7 @@ void m2x_device_info ( const char *api_key_ptr, char *iccid_ptr, char *ret_buffe
     get_req.header = http_add_field(get_req.header, "Content-Type: application/json");
     get_req.header = http_add_field(get_req.header, tmp_buff1);
 
-    sprintf(tmp_buff1, "http://api-m2x.att.com/v2/devices/search?serial=%s", iccid_ptr);
+    sprintf(tmp_buff1, "http://api-m2x.att.com/v2/devices/%s", iccid_ptr);
 
     do {
         i=http_get(&get_req, tmp_buff1, ret_buffer);
