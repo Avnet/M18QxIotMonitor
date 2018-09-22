@@ -78,6 +78,7 @@ After the code has been pushed to the SK2, you can execute it by entering an ADB
     MON> 
 
 
+A sieries of video's are avaialble at http://cloudconnectkits.org/product/global-lte-starter-kit unter the **Training** tab.
 
 
 
