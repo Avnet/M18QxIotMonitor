@@ -145,12 +145,14 @@ int qsa_irq_callback(gpio_pin_t pin_name, gpio_irq_trig_t direction)
 
 int quickstart_app(int argc, const char * const * argv )
 {
-    void  wwan_io(int);
-    void  do_lis2dw2m2x(void);
-    float lis2dw12_readTemp12(void);
+    void   wwan_io(int);
+    void   do_lis2dw2m2x(void);
+    float  lis2dw12_readTemp12(void);
     pthread_t thread1;
-    float last_lat=0.0, last_lng=0.0;
-    int   last_alt=0;
+    float  last_lat=0.0, last_lng=0.0;
+    int    last_alt=0;
+    bool   using_masterkey = false;
+    bool   have_deviceid   = false;
     extern struct timeval gps_start, gps_end;  //measure duration of gps call...
     extern float lat;
     extern float lng;
@@ -167,6 +169,7 @@ int quickstart_app(int argc, const char * const * argv )
     char         str_lat[16];
     char         str_long[16];
     char         str_elev[16];
+    char*        strptr;
     double       elapse=0;
     float        adc_voltage;
 
@@ -185,11 +188,6 @@ int quickstart_app(int argc, const char * const * argv )
 
     do_color(current_color="RED");
     mySystem.iccid=getICCID(om, sizeof(om));
-    if( !strlen(device_id) ) {
-        printf("Using ICCID for device id\n");
-        strcpy(device_id,  mySystem.iccid.c_str());
-        }
-
     printf("\n\nQuick Start Application:\n");
     gpio_deinit( &gpio_input.hndl);
     bpress = 0;
@@ -200,35 +198,83 @@ int quickstart_app(int argc, const char * const * argv )
     get_wwan_status(om, sizeof(om));
     wwan_io(!strcmp(om[7].value,"1")?1:0);
 
-    printf("-Validating API Key (%s) and Device ID (%s)...\n",api_key,device_id);
-    m2x_device_info(api_key, device_id,  resp);
+    if( !strlen(api_key) ) {
+        printf("\nERROR: Must provide API KEY!\n");
+        gpio_deinit( &user_key);
+        binario_io_close();
+        binary_io_init();
+        return 0;
+        }
 
-    char *strptr = strstr(resp,"\"name\":\"Global Starter Kit\",");
-    if (strptr) {
-        printf("device already present.\n");
-        strptr = strstr(resp,"\"key\":\"");
-        i=strcspn(strptr+8,"\"");
-        strncpy(api_key,strptr+7,i+1);
-        strptr = strstr(resp,"\"id\":\"");
-        if (strptr) {
-            i=strcspn(strptr+7,"\"");
-            strncpy(device_id,strptr+6,i+1);
+    m2x_getkeys(1, api_key,resp);           // see if we are using the Master KEY
+    strptr = strstr(resp,"\"Master Key\"");
+    using_masterkey = (strptr)? true:false;
+    have_deviceid = (strlen(device_id)!=0);
+
+// verify api_key and device_id
+    if (using_masterkey ) {
+        m2x_getkeys(0, api_key, resp);
+        strptr = strstr(resp,mySystem.iccid.c_str());
+        if( strptr ) {
+            char *tptr1 = strstr(strptr,"\"id\":");
+            char *tptr2 = strstr(tptr1+6,"\"");
+            strncpy(device_id,tptr1+6,(tptr2-tptr1)-6);
+            tptr1 = strstr(strptr,"\"key\":");
+            tptr2 = strstr(tptr1+7,"\"");
+            strncpy(api_key,tptr1+7,(tptr2-tptr1)-7);
+            printf("Primary API Key and Device already exist, using them.\n");
+            }
+        else{
+            printf("Using ICCID for device id to new create Device.\n");
+            strcpy(device_id,  mySystem.iccid.c_str());
             }
         }
-    else {
+    else if (!have_deviceid){
+        printf("ERROR: You must provide device id for primary api key!\n");
+        gpio_deinit( &user_key);
+        binario_io_close();
+        binary_io_init();
+        return 0;
+        }
+
+    printf("-Validating API Key (%s) and Device ID (%s)...\n",api_key,device_id);
+    m2x_device_info(api_key, device_id,  resp);
+    strptr = strstr(resp,"\"name\":\"Global Starter Kit\",");
+    if (strptr) {                           //using the PRIMARY_API_KEY and DEVICE_ID, keep going
+        printf("device already present.\n");
+        }
+    else{                               //using the MASTER_API_KEY with no DEVICE_ID, create a new one
         printf("Create a new device.\n");
-        if( !strlen(api_key) ) {
-            printf("ERROR: must provide an API key!\n");
-            printf("\n\nExiting Quick Start Application.\n");
+        if( !using_masterkey ) {
+            printf("ERROR: must use MASTER KEY to create device!\n");
             gpio_deinit( &user_key);
             binario_io_close();
             binary_io_init();
             return 0;
             }
+        if( !strcmp(api_key, device_id) ) {
+            printf("ERROR: API KEY and DEVICE ID cant be the same!\n");
+            gpio_deinit( &user_key);
+            binario_io_close();
+            binary_io_init();
+            return 0;
+            }
+
+        m2x_getkeys(0, api_key, resp);
+        if( !strlen(device_id) ) {
+            i=sscanf(resp,"\"key\":\"%s\"",device_id);
+                if( i == 1 && !strcmp( device_id, api_key) ) {
+                if( sscanf(resp,"http://api-m2x.att.com/v2/devices/%s", device_id) != 1 ) {
+                    printf("Using ICCID for device id\n");
+                    strcpy(device_id,  mySystem.iccid.c_str());
+                    }
+                }
+            }
+
         m2x_create_device(api_key, device_id, resp);
         i = parse_maljson(resp, om, sizeof(om));
         strcpy(device_id, om[11].value);
-        printf("-Creating the data streams...\n");
+        printf("Now using Device ID: %s\n-Creating the data streams...\n",device_id);
         m2x_create_stream(device_id, api_key, "ADC");
         m2x_create_stream(device_id, api_key, "TEMP");
         m2x_create_stream(device_id, api_key, "XVALUE");
@@ -243,7 +289,7 @@ int quickstart_app(int argc, const char * const * argv )
     printf("\n");
     printf("       %s\n", qsa_url);
     printf("\n");
-    printf("These streams are updated continuously with user a user specfied Delay between postings.\n");
+    printf("These streams are updated each time the user presses the USER button.\n");
     printf("LED colors will display a different colors after each set of sensor data is sent to M2X.\n");
     printf("\n");
     printf("To exit the Quick Start Applicatioin, press the User Button on the Global \n");
@@ -288,7 +334,7 @@ int quickstart_app(int argc, const char * const * argv )
         pthread_join( thread1, NULL); //wait here for the GSP to finish
 
         if( lat == 0.0 && lng == 0.0 && alt == 0 ) {
-            printf(" ** Didn't get GPS info, using last know values.\n");
+            printf(" ** Didn't get GPS info, using last know values ** ");
             lat = last_lat;
             lng = last_lng;
             alt = last_alt;
@@ -300,7 +346,7 @@ int quickstart_app(int argc, const char * const * argv )
 
         m2x_update_location_value ( device_id, api_key, device_id, str_lat, str_long, str_elev);
 
-        printf("All Values sent.");
+        printf("All Values sent.\r");
         fflush(stdout);
 
         gettimeofday(&end, NULL);
@@ -318,5 +364,6 @@ int quickstart_app(int argc, const char * const * argv )
     gpio_deinit( &user_key);
     binario_io_close();
     binary_io_init();
+    return 1;
 }
 

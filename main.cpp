@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     newt.c_lflag &= ~(ICANON | ECHO);
     tcsetattr( STDIN_FILENO, TCSANOW, &newt );
 
-    strcpy(device_id,  DEFAULT_DEVICE_ID);
+    strcpy(device_id,  "");
     strcpy(api_key,  "");
     memset(demo_url,0x00,sizeof(demo_url));
 
