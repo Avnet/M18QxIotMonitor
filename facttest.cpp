@@ -121,7 +121,8 @@ void *check_gps(void *ptr)
                 printf("\rGPS Acquisiton TO (%d seconds)\n",(int)round(elapse)/1000);
             }
         else {
-            printf("\r%c",(m==0)?0x7C:(m==1)?0x2f:(m==2)?0x2d:0x5c);
+//            printf("\r%c",(m==0)?0x7C:(m==1)?0x2f:(m==2)?0x2d:0x5c);
+            printf("\r%c",(m==0)?'O':(m==1)?'o':(m==2)?'.':' ');
             fflush(stdout);
             m++;
             m %= 4;

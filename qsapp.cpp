@@ -211,8 +211,7 @@ int quickstart_app(int argc, const char * const * argv )
     using_masterkey = (strptr)? true:false;
     have_deviceid = (strlen(device_id)!=0);
 
-// verify api_key and device_id
-    if (using_masterkey ) {
+    if (using_masterkey ) {        // verify api_key and device_id
         m2x_getkeys(0, api_key, resp);
         strptr = strstr(resp,mySystem.iccid.c_str());
         if( strptr ) {
@@ -240,10 +239,10 @@ int quickstart_app(int argc, const char * const * argv )
     printf("-Validating API Key (%s) and Device ID (%s)...\n",api_key,device_id);
     m2x_device_info(api_key, device_id,  resp);
     strptr = strstr(resp,"\"name\":\"Global Starter Kit\",");
-    if (strptr) {                           //using the PRIMARY_API_KEY and DEVICE_ID, keep going
+    if (strptr) {
         printf("device already present.\n");
         }
-    else{                               //using the MASTER_API_KEY with no DEVICE_ID, create a new one
+    else{
         printf("Create a new device.\n");
         if( !using_masterkey ) {
             printf("ERROR: must use MASTER KEY to create device!\n");
@@ -251,24 +250,6 @@ int quickstart_app(int argc, const char * const * argv )
             binario_io_close();
             binary_io_init();
             return 0;
-            }
-        if( !strcmp(api_key, device_id) ) {
-            printf("ERROR: API KEY and DEVICE ID cant be the same!\n");
-            gpio_deinit( &user_key);
-            binario_io_close();
-            binary_io_init();
-            return 0;
-            }
-
-        m2x_getkeys(0, api_key, resp);
-        if( !strlen(device_id) ) {
-            i=sscanf(resp,"\"key\":\"%s\"",device_id);
-                if( i == 1 && !strcmp( device_id, api_key) ) {
-                if( sscanf(resp,"http://api-m2x.att.com/v2/devices/%s", device_id) != 1 ) {
-                    printf("Using ICCID for device id\n");
-                    strcpy(device_id,  mySystem.iccid.c_str());
-                    }
-                }
             }
 
         m2x_create_device(api_key, device_id, resp);
@@ -289,11 +270,10 @@ int quickstart_app(int argc, const char * const * argv )
     printf("\n");
     printf("       %s\n", qsa_url);
     printf("\n");
-    printf("These streams are updated each time the user presses the USER button.\n");
-    printf("LED colors will display a different colors after each set of sensor data is sent to M2X.\n");
+    printf("These streams are updated each time the user presses the USER button. To exit the program, press and hold\n");
+    printf("the User Button for > 3 seconds.\n\n");
+    printf("LED colors will display a different colors for waiting, button press, and sensor data being sent to M2X.\n");
     printf("\n");
-    printf("To exit the Quick Start Applicatioin, press the User Button on the Global \n");
-    printf("LTE IoT Starter Kit for > 3 seconds.\n\n");
     i=1;
     while( !done ) {
         do_color(current_color="GREEN");
@@ -356,8 +336,6 @@ int quickstart_app(int argc, const char * const * argv )
             printf(" (delay %d seconds)\n",dly);
             sleep(dly);
             }
-        else
-            printf("\n");
         }
     printf("\n\nExiting Quick Start Application.\n");
 
