@@ -30,6 +30,7 @@ extern "C" {
 #endif
 
 extern void m2x_device_info ( const char *api_key_ptr, char *iccid_ptr, char *ret_buffer);
+extern void m2x_getkeys(int select_api, const char *api_key, char *ret_buffer);
 extern void m2x_list_devices ( const char *api_key_ptr, char *buff );
 extern int m2x_create_device ( const char *api_key_ptr, const char *device_name_ptr, char *buff );
 extern int m2x_create_stream ( const char *device_id_ptr, const char *api_key_ptr, const char *stream_name_ptr );
