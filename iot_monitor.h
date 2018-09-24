@@ -38,7 +38,7 @@
 
 #endif
 
-#define VER             1.03
+#define VER             1.11
 #define VER_DATE	__DATE__ " @ " __TIME__
 
 #define my_getc()	getc()
