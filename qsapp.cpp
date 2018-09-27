@@ -263,7 +263,7 @@ int quickstart_app(int argc, const char * const * argv )
         m2x_create_stream(device_id, api_key, "ZVALUE");
         }
 
-    sprintf(qsa_url, "https://api-m2x.att.com/devices/%s", device_id);
+    sprintf(qsa_url, "https://m2x.att.com/devices/%s", device_id);
     printf("Using API Key = %s, Device Key = %s\n",api_key, device_id);
     printf("This application will post XYZ data, Temperature data, Light ADC data, and GPS location to a standard M2X\n");
     printf("account.  To access the data, browse to this URL:\n");
